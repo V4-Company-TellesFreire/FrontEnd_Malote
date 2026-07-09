@@ -1,0 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base Layer Resets ──────────────────────────────────────────────────── */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: #F8FAFB;
+    color: #1E293B;
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  /* Headings use display font */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  /* Focus outline for accessibility */
+  :focus-visible {
+    outline: 2px solid #1F3F77;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F0F3F5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C8D0D9;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* ─── Component Layer ───────────────────────────────────────────────────── */
+
+@layer components {
+  /* Kanban board horizontal scroll container */
+  .kanban-scroll {
+    @apply flex gap-3 overflow-x-auto pb-4;
+    scroll-snap-type: x proximity;
+  }
+
+  .kanban-scroll > * {
+    scroll-snap-align: start;
+  }
+
+  /* Status badge consistent sizing */
+  .status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap;
+  }
+}
+
+/* ─── Utility Layer ─────────────────────────────────────────────────────── */
+
+@layer utilities {
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Text balance for headings */
+  .text-balance {
+    text-wrap: balance;
+  }
+}

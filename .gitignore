@@ -1,0 +1,63 @@
+# Dependências
+node_modules/
+.pnp
+.pnp.js
+
+# Build e distribuição
+dist/
+dist-ssr/
+build/
+out/
+
+# Variáveis de ambiente (NUNCA commitar)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.staging
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Cache e temporários
+.cache/
+.temp/
+*.tmp
+*.temp
+
+# Cobertura de testes
+coverage/
+*.lcov
+
+# Editores e IDEs
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# TypeScript
+*.tsbuildinfo
+
+# Arquivos locais de configuração
+*.local
+
+# Assets do template padrão do Vite (não pertencem ao projeto)
+src/assets/react.svg
+src/assets/vite.svg

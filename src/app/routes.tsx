@@ -1,0 +1,144 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
+import { MainLayout } from './layouts/MainLayout';
+import { LoginPage } from '../pages/login/LoginPage';
+import { StoreSelectorPage } from '../pages/store-selector/StoreSelectorPage';
+import { StorePanelPage } from '../pages/store-panel/StorePanelPage';
+import { LabPanelPage } from '../pages/lab-panel/LabPanelPage';
+import { StoreDashboardPage } from '../pages/dashboard/StoreDashboardPage';
+import { NewOSForm } from '../pages/store-panel/NewOSForm';
+import { ProfilePage } from '../pages/profile/ProfilePage';
+
+// Helper component for private routes requiring active login session
+function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    // Redirect unauthorized roles back to respective landing page
+    const defaultLanding = user.role === 'laboratorio' ? '/lab' : '/store/dashboard';
+    return <Navigate to={defaultLanding} replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// Helper requiring store selection for shop level users
+function StoreSelectionRoute({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((s) => s.user);
+  const selectedStoreId = useAuthStore((s) => s.selectedStoreId);
+
+  // Vendedor & Gerente need to select a store first. Lab/Admin skip selection
+  const needsSelection = user?.role === 'vendedor' || user?.role === 'gerente';
+  if (needsSelection && !selectedStoreId) {
+    return <Navigate to="/selecionar-loja" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+export function AppRoutes() {
+  const user = useAuthStore((s) => s.user);
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Public auth login */}
+        <Route path="/login" element={<LoginPage />} />
+
+        {/* Store selection step */}
+        <Route
+          path="/selecionar-loja"
+          element={
+            <ProtectedRoute allowedRoles={['vendedor', 'gerente', 'admin']}>
+              <StoreSelectorPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Protected layout routes */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <StoreSelectionRoute>
+                <MainLayout />
+              </StoreSelectionRoute>
+            </ProtectedRoute>
+          }
+        >
+          {/* Main dashboard redirect checks */}
+          <Route
+            index
+            element={
+              user?.role === 'laboratorio' ? (
+                <Navigate to="/lab" replace />
+              ) : (
+                <Navigate to="/store/dashboard" replace />
+              )
+            }
+          />
+
+          {/* Store management */}
+          <Route path="store/dashboard" element={<StorePanelPage initialTab="dashboard" />} />
+          <Route path="store/track" element={<StorePanelPage initialTab="track" />} />
+          <Route path="store/new" element={<NewOSForm />} />
+          <Route path="store/deliveries" element={<StorePanelPage initialTab="deliveries" />} />
+          <Route path="rectifications" element={<StorePanelPage initialTab="rectifications" />} />
+          <Route path="profile" element={<ProfilePage />} />
+
+          {/* Laboratório */}
+          <Route
+            path="lab"
+            element={
+              <ProtectedRoute allowedRoles={['laboratorio', 'admin']}>
+                <LabPanelPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="notifications"
+            element={
+              <ProtectedRoute allowedRoles={['laboratorio', 'admin']}>
+                <LabPanelPage initialTab="notifications" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="caveats"
+            element={
+              <ProtectedRoute allowedRoles={['laboratorio', 'admin']}>
+                <LabPanelPage initialTab="caveats" />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Dashboards */}
+          <Route
+            path="dashboard/store"
+            element={<Navigate to="/store/dashboard" replace />}
+          />
+          <Route
+            path="dashboard/network"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <StoreDashboardPage isNetwork />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* General placeholder routes for configs */}
+          <Route path="admin" element={<StorePanelPage initialTab="config" />} />
+        </Route>
+
+        {/* Fallback to index */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+export default AppRoutes;
