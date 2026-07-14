@@ -33,6 +33,7 @@ export function KanbanBoard({
               key={status}
               status={status}
               orders={columnOrders}
+              className={isSevenColumns ? 'xl:w-full xl:min-w-0' : undefined}
               onMoveCard={onMoveCard}
               onOpenReceipt={onOpenReceipt}
               onOpenPickup={onOpenPickup}

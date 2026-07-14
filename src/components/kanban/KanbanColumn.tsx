@@ -2,6 +2,7 @@ import { STATUS_META } from '../../lib/constants';
 import type { ServiceOrderStatus } from '../../lib/constants';
 import type { ServiceOrder } from '../../lib/types';
 import { KanbanCard } from './KanbanCard';
+import { cn } from '../../lib/utils';
 
 export interface KanbanColumnProps {
   status: ServiceOrderStatus;
@@ -10,6 +11,7 @@ export interface KanbanColumnProps {
   onOpenReceipt: (id: string) => void;
   onOpenPickup: (id: string) => void;
   onOpenCaveat: (id: string) => void;
+  className?: string;
 }
 
 export function KanbanColumn({
@@ -19,6 +21,7 @@ export function KanbanColumn({
   onOpenReceipt,
   onOpenPickup,
   onOpenCaveat,
+  className,
 }: KanbanColumnProps) {
   const meta = STATUS_META[status];
   
@@ -26,7 +29,7 @@ export function KanbanColumn({
   const sortedOrders = [...orders].sort((a, b) => b.urgency - a.urgency);
 
   return (
-    <div className="flex flex-col w-72 xl:w-full xl:min-w-0 h-fit rounded-xl border border-neutral-200 bg-neutral-50 shadow-xs">
+    <div className={cn("flex flex-col w-80 shrink-0 h-fit rounded-xl border border-neutral-200 bg-neutral-50 shadow-xs", className)}>
       {/* Column Header */}
       <div className="flex items-center justify-between p-3 bg-white border-b border-neutral-200">
         <div className="flex items-center gap-2">
