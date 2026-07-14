@@ -1,10 +1,15 @@
-import { useRef, useEffect } from 'react';
+import { useCallback, useRef } from 'react';
 
 export function useDragToScroll() {
-  const ref = useRef<HTMLDivElement | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
-  useEffect(() => {
-    const el = ref.current;
+  const ref = useCallback((el: HTMLDivElement | null) => {
+    // Executa a limpeza do elemento anterior, se existir
+    if (cleanupRef.current) {
+      cleanupRef.current();
+      cleanupRef.current = null;
+    }
+
     if (!el) return;
 
     let isDown = false;
@@ -66,7 +71,7 @@ export function useDragToScroll() {
     el.addEventListener('mouseup', onMouseUp);
     el.addEventListener('mousemove', onMouseMove);
 
-    return () => {
+    cleanupRef.current = () => {
       el.removeEventListener('mousedown', onMouseDown);
       el.removeEventListener('mouseleave', onMouseLeave);
       el.removeEventListener('mouseup', onMouseUp);
