@@ -11,6 +11,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieCha
 import { useStoreMetrics, useNetworkMetrics } from '../../features/dashboard/hooks';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { getValidTransitions, getPreviousStatus, type ServiceOrderStatus } from '../../lib/constants';
+import { useDragToScroll } from '../../hooks/useDragToScroll';
 
 export interface StorePanelPageProps {
   initialTab?: 'dashboard' | 'track' | 'deliveries' | 'rectifications' | 'config';
@@ -21,6 +22,8 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
   const toast = useToast();
   const user = useAuthStore((s) => s.user);
   const storeId = useAuthStore((s) => s.selectedStoreId);
+  const trackDragRef = useDragToScroll();
+  const deliveriesDragRef = useDragToScroll();
 
   const [activeTab, setActiveTab] = React.useState<string>(initialTab);
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -494,7 +497,7 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
 
             {/* Acompanhamento (track) */}
             {activeTab === 'track' && (
-              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-neutral-200">
+              <div ref={trackDragRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-neutral-200 cursor-grab">
                 <KanbanColumn
                   status="Chegada de Malote"
                   orders={activeOrders.filter((o) => o.status === 'Chegada de Malote')}
@@ -556,7 +559,7 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
 
             {/* Entregues (deliveries) */}
             {activeTab === 'deliveries' && (
-              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-neutral-200">
+              <div ref={deliveriesDragRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-neutral-200 cursor-grab">
                 <KanbanColumn
                   status="Entregue na Loja"
                   orders={deliveryOrders.filter((o) => o.status === 'Entregue na Loja')}

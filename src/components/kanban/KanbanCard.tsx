@@ -56,7 +56,7 @@ export function KanbanCard({
 
   return (
     <div
-      className={`flex flex-col gap-2.5 p-3 rounded-lg border border-neutral-300 text-xs transition-all duration-150 ${bgClass} ${urgencyBorderClasses[order.urgency]}`}
+      className={`kanban-card flex flex-col gap-2.5 p-3 rounded-lg border border-neutral-300 text-xs transition-all duration-150 ${bgClass} ${urgencyBorderClasses[order.urgency]}`}
     >
       {/* Header OS info */}
       <div className="flex flex-wrap items-center justify-between gap-1 text-[9px] text-neutral-400 font-mono">

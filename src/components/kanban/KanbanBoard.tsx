@@ -1,6 +1,7 @@
 import type { ServiceOrder } from '../../lib/types';
 import { SERVICE_ORDER_STATUSES, type ServiceOrderStatus } from '../../lib/constants';
 import { KanbanColumn } from './KanbanColumn';
+import { useDragToScroll } from '../../hooks/useDragToScroll';
 
 export interface KanbanBoardProps {
   orders: ServiceOrder[];
@@ -21,9 +22,13 @@ export function KanbanBoard({
 }: KanbanBoardProps) {
   const activeStatuses = statuses || SERVICE_ORDER_STATUSES;
   const isSevenColumns = activeStatuses.length === 7;
+  const dragRef = useDragToScroll();
 
   return (
-    <div className={`w-full overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-neutral-300 ${isSevenColumns ? 'xl:overflow-x-hidden' : ''}`}>
+    <div 
+      ref={dragRef}
+      className={`w-full overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-neutral-300 cursor-grab ${isSevenColumns ? 'xl:cursor-default' : ''}`}
+    >
       <div className={`flex gap-3 px-1 ${isSevenColumns ? 'min-w-max xl:min-w-0 xl:w-full xl:grid xl:grid-cols-7' : 'min-w-max'}`}>
         {activeStatuses.map((status) => {
           const columnOrders = orders.filter((o) => o.status === status);
