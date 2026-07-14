@@ -23,7 +23,9 @@ import {
   Store, 
   Shield, 
   Mail, 
-  Key, 
+  Key,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 interface SellerFormValues {
@@ -42,6 +44,25 @@ const initialFormValues: SellerFormValues = {
   storeId: '',
   role: 'vendedor',
   isActive: true,
+};
+
+const validateStrongPassword = (pwd: string): string | null => {
+  if (pwd.length < 8) {
+    return 'A senha deve ter no mínimo 8 caracteres.';
+  }
+  if (!/[A-Z]/.test(pwd)) {
+    return 'A senha deve conter pelo menos uma letra maiúscula.';
+  }
+  if (!/[a-z]/.test(pwd)) {
+    return 'A senha deve conter pelo menos uma letra minúscula.';
+  }
+  if (!/\d/.test(pwd)) {
+    return 'A senha deve conter pelo menos um número.';
+  }
+  if (!/[@$!%*?&#.\-_]/.test(pwd)) {
+    return 'A senha deve conter pelo menos um caractere especial (ex: @, $, !, %, *, ?, &, #, ., -, _).';
+  }
+  return null;
 };
 
 export function SellerManagementPage() {
@@ -64,6 +85,17 @@ export function SellerManagementPage() {
   // Form State
   const [formValues, setFormValues] = React.useState<SellerFormValues>(initialFormValues);
   const [formError, setFormError] = React.useState<string | null>(null);
+  
+  // Password Visibility States
+  const [visiblePasswords, setVisiblePasswords] = React.useState<Record<string, boolean>>({});
+  const [showFormPassword, setShowFormPassword] = React.useState(false);
+
+  const togglePasswordVisibility = (userId: string) => {
+    setVisiblePasswords((prev) => ({
+      ...prev,
+      [userId]: !prev[userId],
+    }));
+  };
 
   // Filtered sellers list (managers manage sellers, but can also manage other gerentes if admin)
   const filteredSellers = React.useMemo(() => {
@@ -153,7 +185,13 @@ export function SellerManagementPage() {
       return;
     }
     if (!formValues.passwordPin.trim()) {
-      setFormError('Informe uma senha ou PIN.');
+      setFormError('Informe a senha de acesso.');
+      return;
+    }
+
+    const pwdErr = validateStrongPassword(formValues.passwordPin);
+    if (pwdErr) {
+      setFormError(pwdErr);
       return;
     }
 
@@ -309,9 +347,24 @@ export function SellerManagementPage() {
                         <Mail className="h-3.5 w-3.5 text-neutral-400" />
                         {u.email}
                       </div>
-                      <div className="text-[10px] text-neutral-450 mt-1 flex items-center gap-1">
-                        <Key className="h-3 w-3 text-neutral-400" />
-                        PIN: <strong className="font-mono text-neutral-700">{u.passwordPin || '1234'}</strong>
+                      <div className="text-[10px] text-neutral-450 mt-1 flex items-center gap-1.5">
+                        <Key className="h-3 w-3 text-neutral-400 shrink-0" />
+                        Senha:{' '}
+                        <strong className="font-mono text-neutral-700 select-all">
+                          {visiblePasswords[u.id] ? u.passwordPin : '••••••••'}
+                        </strong>
+                        <button
+                          type="button"
+                          onClick={() => togglePasswordVisibility(u.id)}
+                          className="pointer-events-auto text-neutral-400 hover:text-neutral-600 focus:outline-none ml-1 shrink-0"
+                          title={visiblePasswords[u.id] ? 'Ocultar Senha' : 'Exibir Senha'}
+                        >
+                          {visiblePasswords[u.id] ? (
+                            <EyeOff className="h-3.5 w-3.5" />
+                          ) : (
+                            <Eye className="h-3.5 w-3.5" />
+                          )}
+                        </button>
                       </div>
                     </td>
                     <td className="p-3">
@@ -390,7 +443,19 @@ export function SellerManagementPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Key className="h-3.5 w-3.5 text-neutral-400 shrink-0" />
-                    <span>PIN de Acesso: <strong className="font-mono text-neutral-800">{u.passwordPin || '1234'}</strong></span>
+                    <span>Senha de Acesso: <strong className="font-mono text-neutral-800">{visiblePasswords[u.id] ? u.passwordPin : '••••••••'}</strong></span>
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility(u.id)}
+                      className="pointer-events-auto text-neutral-450 hover:text-neutral-650 focus:outline-none ml-1 shrink-0"
+                      title={visiblePasswords[u.id] ? 'Ocultar Senha' : 'Exibir Senha'}
+                    >
+                      {visiblePasswords[u.id] ? (
+                        <EyeOff className="h-3.5 w-3.5" />
+                      ) : (
+                        <Eye className="h-3.5 w-3.5" />
+                      )}
+                    </button>
                   </div>
                   <div className="flex items-center gap-2">
                     <Store className="h-3.5 w-3.5 text-brand-400 shrink-0" />
@@ -470,13 +535,22 @@ export function SellerManagementPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Senha ou PIN de Acesso"
-              type="text"
-              placeholder="4 dígitos numéricos"
-              maxLength={6}
+              label="Senha de Acesso"
+              type={showFormPassword ? 'text' : 'password'}
+              placeholder="Senha forte (mín. 8 caracteres)"
               value={formValues.passwordPin}
               onChange={(e) => setFormValues({ ...formValues, passwordPin: e.target.value })}
               required
+              rightIcon={
+                <button
+                  type="button"
+                  onClick={() => setShowFormPassword(!showFormPassword)}
+                  className="pointer-events-auto text-neutral-450 hover:text-neutral-650 focus:outline-none"
+                  title={showFormPassword ? 'Ocultar Senha' : 'Exibir Senha'}
+                >
+                  {showFormPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                </button>
+              }
             />
 
             <Select

@@ -103,9 +103,9 @@ export function LoginPage() {
               Acesso Demonstrativo
             </h5>
             <p className="text-[9px] text-neutral-500 leading-relaxed">
-              Use <strong className="text-neutral-700">vendedor@carol.com</strong> (senha: 1037),{' '}
-              <strong className="text-neutral-700">gerente@carol.com</strong> (senha: 1234), ou{' '}
-              <strong className="text-neutral-700">lab@katz.com</strong> (senha: 4321) para testar os perfis.
+              Use <strong className="text-neutral-700">vendedor@carol.com</strong> (senha: Vendedor@Carol1037),{' '}
+              <strong className="text-neutral-700">gerente@carol.com</strong> (senha: Gerente@Carol1234), ou{' '}
+              <strong className="text-neutral-700">lab@katz.com</strong> (senha: Lab@Katz4321) para testar os perfis.
             </p>
           </div>
         </div>

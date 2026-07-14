@@ -14,7 +14,7 @@ const DEFAULT_USERS: Record<string, AuthUser & { passwordPin: string }> = {
     storeName: 'Norte 1',
     isActive: true,
     createdAt: new Date().toISOString(),
-    passwordPin: '1037',
+    passwordPin: 'Vendedor@Carol1037',
   },
   'gerente@carol.com': {
     id: 'usr_ger_1',
@@ -25,7 +25,7 @@ const DEFAULT_USERS: Record<string, AuthUser & { passwordPin: string }> = {
     storeName: 'Norte 1',
     isActive: true,
     createdAt: new Date().toISOString(),
-    passwordPin: '1234',
+    passwordPin: 'Gerente@Carol1234',
   },
   'lab@katz.com': {
     id: 'usr_lab_1',
@@ -36,7 +36,7 @@ const DEFAULT_USERS: Record<string, AuthUser & { passwordPin: string }> = {
     storeName: null,
     isActive: true,
     createdAt: new Date().toISOString(),
-    passwordPin: '4321',
+    passwordPin: 'Lab@Katz4321',
   },
   'admin@katz.com': {
     id: 'usr_admin_1',
@@ -47,7 +47,7 @@ const DEFAULT_USERS: Record<string, AuthUser & { passwordPin: string }> = {
     storeName: null,
     isActive: true,
     createdAt: new Date().toISOString(),
-    passwordPin: '9999',
+    passwordPin: 'Admin@Katz9999',
   },
 };
 
@@ -57,7 +57,19 @@ function getStoredUsers(): Record<string, AuthUser & { passwordPin: string }> {
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_USERS));
     return DEFAULT_USERS;
   }
-  return JSON.parse(data);
+  
+  try {
+    const parsed = JSON.parse(data);
+    // Migration: If we detect the old simple pin for vendedor, force re-initialization with strong default passwords
+    if (parsed['vendedor@carol.com'] && parsed['vendedor@carol.com'].passwordPin === '1037') {
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_USERS));
+      return DEFAULT_USERS;
+    }
+    return parsed;
+  } catch (_e) {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_USERS));
+    return DEFAULT_USERS;
+  }
 }
 
 function saveUsers(users: Record<string, AuthUser & { passwordPin: string }>) {
