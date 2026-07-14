@@ -26,7 +26,7 @@ export function KanbanColumn({
   const sortedOrders = [...orders].sort((a, b) => b.urgency - a.urgency);
 
   return (
-    <div className="flex flex-col w-72 h-fit rounded-xl border border-neutral-200 bg-neutral-50 shadow-xs">
+    <div className="flex flex-col w-72 xl:w-full xl:min-w-0 h-fit rounded-xl border border-neutral-200 bg-neutral-50 shadow-xs">
       {/* Column Header */}
       <div className="flex items-center justify-between p-3 bg-white border-b border-neutral-200">
         <div className="flex items-center gap-2">

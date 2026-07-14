@@ -868,7 +868,7 @@ export class ServiceOrdersMockApi implements IServiceOrdersApi {
     dateFrom?: string;
     dateTo?: string;
   }): Promise<ServiceOrder[]> {
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 100));
     let orders = getStoredOrders();
 
     if (filters) {
@@ -899,7 +899,7 @@ export class ServiceOrdersMockApi implements IServiceOrdersApi {
   }
 
   async createServiceOrder(payload: CreateOSPayload, userId: string, userName: string): Promise<ServiceOrder> {
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await new Promise(resolve => setTimeout(resolve, 100));
     const orders = getStoredOrders();
 
     const osNumber = generateOSNumber();

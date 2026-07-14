@@ -32,8 +32,8 @@ function StoreSelectionRoute({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user);
   const selectedStoreId = useAuthStore((s) => s.selectedStoreId);
 
-  // Vendedor & Gerente need to select a store first. Lab/Admin skip selection
-  const needsSelection = user?.role === 'vendedor' || user?.role === 'gerente';
+  // Only vendedor MUST select a store. Gerente can operate in consolidated mode
+  const needsSelection = user?.role === 'vendedor';
   if (needsSelection && !selectedStoreId) {
     return <Navigate to="/selecionar-loja" replace />;
   }
@@ -97,6 +97,14 @@ export function AppRoutes() {
             element={
               <ProtectedRoute allowedRoles={['laboratorio', 'admin']}>
                 <LabPanelPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="lab/deliveries"
+            element={
+              <ProtectedRoute allowedRoles={['laboratorio', 'admin']}>
+                <LabPanelPage initialTab="deliveries" />
               </ProtectedRoute>
             }
           />

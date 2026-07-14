@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Clock, Image, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Image, AlertTriangle, Store } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { canPerformTransition } from '../../lib/permissions';
 import { getPreviousStatus, getValidTransitions } from '../../lib/constants';
@@ -22,21 +22,21 @@ export function KanbanCard({
   onOpenCaveat,
 }: KanbanCardProps) {
   const user = useAuthStore((s) => s.user);
+  const selectedStoreId = useAuthStore((s) => s.selectedStoreId);
   const userRole = user?.role || 'vendedor';
+  const isConsolidatedView = 
+    user?.role === 'laboratorio' || 
+    ((user?.role === 'gerente' || user?.role === 'admin') && !selectedStoreId);
 
   const elapsedText = elapsed(order.statusChangedAt || order.createdAt);
   const timeAlert = getTimeAlertLevel(order.statusChangedAt || order.createdAt);
 
-  // Time-stopped alert background color mapping
-  const timeAlertBgClasses = {
-    normal: 'bg-white hover:bg-neutral-50/50',
-    attention: 'bg-warning-50/40 border-warning-200 hover:bg-warning-50/60',
-    critical: 'bg-critical-50/30 border-critical-200 hover:bg-critical-50/50',
-  };
+  // Uniform light gray background color for all cards
+  const bgClass = 'bg-neutral-50 hover:bg-neutral-100/70';
 
-  // Urgency left border mapping
+  // Urgency left border mapping (highlight is applied only on the left border)
   const urgencyBorderClasses = {
-    0: 'border-l border-neutral-200',
+    0: 'border-l border-neutral-300',
     1: 'border-l-[3px] border-l-warning shadow-xs',
     2: 'border-l-[4px] border-l-critical shadow-sm animate-pulse-urgency',
   };
@@ -56,13 +56,21 @@ export function KanbanCard({
 
   return (
     <div
-      className={`flex flex-col gap-2.5 p-3 rounded-lg border text-xs shadow-xs transition-all duration-150 ${timeAlertBgClasses[timeAlert]} ${urgencyBorderClasses[order.urgency]}`}
+      className={`flex flex-col gap-2.5 p-3 rounded-lg border border-neutral-300 text-xs transition-all duration-150 ${bgClass} ${urgencyBorderClasses[order.urgency]}`}
     >
       {/* Header OS info */}
-      <div className="flex items-center justify-between text-[10px] text-neutral-400 font-mono">
+      <div className="flex flex-wrap items-center justify-between gap-1 text-[9px] text-neutral-400 font-mono">
         <span>Nº {order.osNumber}</span>
         {order.osStore && <span>OS: {order.osStore}</span>}
       </div>
+
+      {/* Store tag for consolidated view */}
+      {isConsolidatedView && (
+        <div className="inline-flex items-center gap-1 self-start px-2 py-0.5 rounded-full bg-brand-50 border border-brand-100 text-[9px] font-bold text-brand-700 max-w-full">
+          <Store className="h-3 w-3 text-brand-500 shrink-0" />
+          <span className="truncate">{order.storeName}</span>
+        </div>
+      )}
 
       {/* Client Name */}
       <div className="flex flex-col gap-0.5">
@@ -129,6 +137,17 @@ export function KanbanCard({
         </div>
       )}
 
+      {/* Caveat description display */}
+      {order.status === 'Entregue c/ Ressalva' && order.reception?.observation && (
+        <div className="p-1.5 rounded bg-critical-50 border border-critical-200 text-critical text-[9px] font-bold flex gap-1 items-start leading-normal">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          <div className="flex flex-col gap-0.5">
+            <span>Ressalva relatada:</span>
+            <span className="font-semibold text-neutral-600 italic">"{order.reception.observation}"</span>
+          </div>
+        </div>
+      )}
+
       {/* Custom Action Strips for Vendedor/Gerente checks */}
       {isPendingReceipt && (
         <div className="mt-1 pt-1.5 border-t border-neutral-100">
@@ -162,11 +181,11 @@ export function KanbanCard({
           <button
             onClick={() => onMoveCard(order.id, -1)}
             disabled={!canGoBackward}
-            className="flex items-center justify-center h-6 px-2 rounded border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700 disabled:opacity-30 disabled:pointer-events-none active:scale-95 transition-all duration-150 flex-1 cursor-pointer"
+            className="flex items-center justify-center h-6 px-1 rounded border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700 disabled:opacity-30 disabled:pointer-events-none active:scale-95 transition-all duration-150 flex-1 min-w-0 cursor-pointer"
             title={prevStatus ? `Voltar para ${prevStatus}` : ''}
           >
-            <ChevronLeft className="h-3.5 w-3.5 mr-0.5 shrink-0" />
-            <span className="truncate max-w-[60px] text-[9px]">
+            <ChevronLeft className="h-3 w-3 mr-0.5 shrink-0" />
+            <span className="truncate text-[8px] font-bold">
               {prevStatus ? prevStatus.split(' ')[0] : 'Voltar'}
             </span>
           </button>
@@ -174,13 +193,13 @@ export function KanbanCard({
           <button
             onClick={() => onMoveCard(order.id, 1)}
             disabled={!canGoForward}
-            className="flex items-center justify-center h-6 px-2 rounded border border-brand-200 bg-brand-50 text-brand hover:bg-brand-100/60 disabled:opacity-30 disabled:pointer-events-none active:scale-95 transition-all duration-150 flex-1 cursor-pointer font-bold"
+            className="flex items-center justify-center h-6 px-1 rounded border border-brand-200 bg-brand-50 text-brand hover:bg-brand-100/60 disabled:opacity-30 disabled:pointer-events-none active:scale-95 transition-all duration-150 flex-1 min-w-0 cursor-pointer font-bold"
             title={nextTarget ? `Avançar para ${nextTarget}` : ''}
           >
-            <span className="truncate max-w-[60px] text-[9px]">
+            <span className="truncate text-[8px] font-bold">
               {nextTarget ? nextTarget.split(' ')[0] : 'Avançar'}
             </span>
-            <ChevronRight className="h-3.5 w-3.5 ml-0.5 shrink-0" />
+            <ChevronRight className="h-3 w-3 ml-0.5 shrink-0" />
           </button>
         </div>
       )}

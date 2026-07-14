@@ -33,8 +33,8 @@ export const useAuthStore = create<AuthState>()(
           token,
           refreshToken,
           isAuthenticated: true,
-          selectedStoreId: user.storeId,
-          selectedStoreName: user.storeName,
+          selectedStoreId: user.role === 'vendedor' ? user.storeId : null,
+          selectedStoreName: user.role === 'vendedor' ? user.storeName : null,
         }),
 
       selectStore: (storeId, storeName) =>

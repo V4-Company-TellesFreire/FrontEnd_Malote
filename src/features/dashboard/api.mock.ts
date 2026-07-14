@@ -73,14 +73,14 @@ export class DashboardMockApi implements IDashboardApi {
   }
 
   async getStoreMetrics(storeId: string): Promise<DashboardMetrics> {
-    await new Promise(resolve => setTimeout(resolve, 400));
+    await new Promise(resolve => setTimeout(resolve, 80));
     const allOrders = getStoredOrders();
     const storeOrders = allOrders.filter(o => o.storeId === storeId);
     return this.calculateMetrics(storeOrders);
   }
 
   async getNetworkMetrics(): Promise<DashboardMetrics> {
-    await new Promise(resolve => setTimeout(resolve, 600));
+    await new Promise(resolve => setTimeout(resolve, 100));
     const allOrders = getStoredOrders();
     return this.calculateMetrics(allOrders);
   }

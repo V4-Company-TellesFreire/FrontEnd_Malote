@@ -11,14 +11,34 @@ import { ReceiptConfirmationModal } from '../../components/forms/ReceiptConfirma
 import { ClientPickupModal } from '../../components/forms/ClientPickupModal';
 
 export interface LabPanelPageProps {
-  initialTab?: 'lab' | 'notifications' | 'caveats';
+  initialTab?: 'lab' | 'deliveries' | 'notifications' | 'caveats';
 }
+
+const PRODUCTION_STATUSES = [
+  'Chegada de Malote',
+  'Envio Laboratório',
+  'Montagem',
+  'Controle de Qualidade',
+  'Separando',
+  'Expedição',
+  'Em Rota',
+] as const;
+
+const DELIVERY_STATUSES = [
+  'Entregue na Loja',
+  'Entregue c/ Ressalva',
+  'Entregue ao Cliente',
+] as const;
 
 export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
   const toast = useToast();
 
   const [activeTab, setActiveTab] = React.useState<string>(initialTab);
   const [viewMode, setViewMode] = React.useState<'kanban' | 'table'>('kanban');
+
+  React.useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   // Filters State
   const [filters, setFilters] = React.useState<KanbanFiltersData>({
@@ -69,9 +89,11 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
 
   // Aggregate stats
   const stats = React.useMemo(() => {
-    if (!filteredOrders) return { total: 0, mounting: 0, transit: 0, urgent: 0 };
+    if (!filteredOrders) return { total: 0, productionTotal: 0, deliveriesTotal: 0, mounting: 0, transit: 0, urgent: 0 };
     return {
       total: filteredOrders.length,
+      productionTotal: filteredOrders.filter((o) => PRODUCTION_STATUSES.includes(o.status as any)).length,
+      deliveriesTotal: filteredOrders.filter((o) => DELIVERY_STATUSES.includes(o.status as any)).length,
       mounting: filteredOrders.filter((o) => o.status === 'Montagem' || o.status === 'Controle de Qualidade').length,
       transit: filteredOrders.filter((o) => o.status === 'Expedição' || o.status === 'Em Rota').length,
       urgent: filteredOrders.filter((o) => o.urgency > 0).length,
@@ -157,7 +179,8 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
   };
 
   const tabItems = [
-    { id: 'lab', label: 'Monitor de Produção', count: stats.total, icon: <FlaskConical className="h-4 w-4" /> },
+    { id: 'lab', label: 'Monitor de Produção', count: stats.productionTotal, icon: <FlaskConical className="h-4 w-4" /> },
+    { id: 'deliveries', label: 'Fluxo de Entregas', count: stats.deliveriesTotal, icon: <Truck className="h-4 w-4" /> },
     { id: 'notifications', label: 'Alertas WhatsApp', count: notifications?.length || 0, icon: <Bell className="h-4 w-4" /> },
     { id: 'caveats', label: 'Ressalvas Relatadas', count: filteredOrders.filter(o => o.status === 'Entregue c/ Ressalva').length, icon: <AlertTriangle className="h-4 w-4" /> },
   ];
@@ -210,41 +233,72 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
       <Tabs tabs={tabItems} activeTab={activeTab} onChange={setActiveTab} />
 
       {/* Monitor dashboard display */}
-      {activeTab === 'lab' && (
-        <div className="flex flex-col gap-4">
-          
-          {/* Quick stats grids */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="border-neutral-200">
-              <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-                <span className="text-2xl font-black text-brand font-mono">{stats.total}</span>
-                <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mt-1">Total em Produção</span>
-              </CardContent>
-            </Card>
+      {(activeTab === 'lab' || activeTab === 'deliveries') && (() => {
+        const activeStatuses = activeTab === 'lab' ? PRODUCTION_STATUSES : DELIVERY_STATUSES;
+        const tabOrders = filteredOrders.filter(o => activeStatuses.includes(o.status as any));
+        const activeUrgentCount = tabOrders.filter(o => o.urgency > 0).length;
 
-            <Card className="border-neutral-200">
-              <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-                <span className="text-2xl font-black text-warning font-mono">{stats.mounting}</span>
-                <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mt-1">Montando / QC</span>
-              </CardContent>
-            </Card>
+        return (
+          <div className="flex flex-col gap-4">
+            
+            {/* Quick stats grids */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="border-neutral-200">
+                <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                  <span className="text-2xl font-black text-brand font-mono">{tabOrders.length}</span>
+                  <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mt-1">
+                    {activeTab === 'lab' ? 'Total em Produção' : 'Total em Entrega'}
+                  </span>
+                </CardContent>
+              </Card>
 
-            <Card className="border-neutral-200">
-              <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-                <span className="text-2xl font-black text-accent font-mono">{stats.transit}</span>
-                <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mt-1">Expedição / Em rota</span>
-              </CardContent>
-            </Card>
+              {activeTab === 'lab' ? (
+                <>
+                  <Card className="border-neutral-200">
+                    <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                      <span className="text-2xl font-black text-warning font-mono">{stats.mounting}</span>
+                      <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mt-1">Montando / QC</span>
+                    </CardContent>
+                  </Card>
 
-            <Card className="border-neutral-200">
-              <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-                <span className={`text-2xl font-black font-mono ${stats.urgent > 0 ? 'text-critical animate-pulse' : 'text-neutral-700'}`}>
-                  {stats.urgent}
-                </span>
-                <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mt-1">Urgências Ativas</span>
-              </CardContent>
-            </Card>
-          </div>
+                  <Card className="border-neutral-200">
+                    <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                      <span className="text-2xl font-black text-accent font-mono">{stats.transit}</span>
+                      <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mt-1">Expedição / Em rota</span>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : (
+                <>
+                  <Card className="border-neutral-200">
+                    <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                      <span className="text-2xl font-black text-success-700 font-mono">
+                        {tabOrders.filter(o => o.status === 'Entregue na Loja' || o.status === 'Entregue c/ Ressalva').length}
+                      </span>
+                      <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mt-1">Recebidas nas Lojas</span>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-neutral-200">
+                    <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                      <span className="text-2xl font-black text-brand-900 font-mono">
+                        {tabOrders.filter(o => o.status === 'Entregue ao Cliente').length}
+                      </span>
+                      <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mt-1">Entregues ao Cliente</span>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+
+              <Card className="border-neutral-200">
+                <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                  <span className={`text-2xl font-black font-mono ${activeUrgentCount > 0 ? 'text-critical animate-pulse' : 'text-neutral-700'}`}>
+                    {activeUrgentCount}
+                  </span>
+                  <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mt-1">Urgências Ativas</span>
+                </CardContent>
+              </Card>
+            </div>
 
           {/* Filters and View toggles */}
           <div className="flex flex-col gap-3">
@@ -278,88 +332,90 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
             </div>
           </div>
 
-          {/* Kanban Board rendering */}
-          {viewMode === 'kanban' ? (
-            <KanbanBoard
-              orders={filteredOrders}
-              onMoveCard={handleMoveCard}
-              onOpenReceipt={handleOpenReceipt}
-              onOpenPickup={handleOpenPickup}
-              onOpenCaveat={handleOpenCaveat}
-            />
-          ) : (
-            /* Table list layouts */
-            <Card className="border-neutral-200 overflow-hidden shadow-xs">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-neutral-50 border-b border-neutral-200 text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
-                      <th className="p-3">Nº OS</th>
-                      <th className="p-3">Cliente</th>
-                      <th className="p-3">Loja / Turno</th>
-                      <th className="p-3">Lente / Serviço</th>
-                      <th className="p-3">Status</th>
-                      <th className="p-3">Parado Há</th>
-                      <th className="p-3 text-right">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100">
-                    {filteredOrders.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="p-8 text-center text-neutral-400 font-semibold">
-                          Nenhum serviço corresponde aos filtros.
-                        </td>
+            {/* Kanban Board rendering */}
+            {viewMode === 'kanban' ? (
+              <KanbanBoard
+                orders={tabOrders}
+                statuses={activeStatuses}
+                onMoveCard={handleMoveCard}
+                onOpenReceipt={handleOpenReceipt}
+                onOpenPickup={handleOpenPickup}
+                onOpenCaveat={handleOpenCaveat}
+              />
+            ) : (
+              /* Table list layouts */
+              <Card className="border-neutral-200 overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-neutral-50 border-b border-neutral-200 text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
+                        <th className="p-3">Nº OS</th>
+                        <th className="p-3">Cliente</th>
+                        <th className="p-3">Loja / Turno</th>
+                        <th className="p-3">Lente / Serviço</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3">Parado Há</th>
+                        <th className="p-3 text-right">Ações</th>
                       </tr>
-                    ) : (
-                      filteredOrders.map((o) => (
-                        <tr key={o.id} className="hover:bg-neutral-50/50">
-                          <td className="p-3 font-mono font-bold text-neutral-700">{o.osNumber}</td>
-                          <td className="p-3 font-bold text-neutral-850">{o.clientName}</td>
-                          <td className="p-3">
-                            <div className="flex flex-col">
-                              <span className="font-bold">{o.storeName}</span>
-                              <span className="text-[10px] text-neutral-400 mt-0.5">{o.malote}</span>
-                            </div>
-                          </td>
-                          <td className="p-3 text-neutral-600">{o.lensType || o.serviceType}</td>
-                          <td className="p-3">
-                            <StatusBadge status={o.status} />
-                          </td>
-                          <td className="p-3 font-mono text-neutral-500">
-                            {elapsed(o.statusChangedAt || o.createdAt)}
-                          </td>
-                          <td className="p-3 text-right">
-                            <div className="flex gap-1.5 justify-end">
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => handleMoveCard(o.id, -1)}
-                                className="h-7 text-[10px]"
-                                disabled={o.status === 'Chegada de Malote'}
-                              >
-                                Voltar
-                              </Button>
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => handleMoveCard(o.id, 1)}
-                                className="h-7 text-[10px]"
-                                disabled={o.status === 'Entregue ao Cliente'}
-                              >
-                                Avançar
-                              </Button>
-                            </div>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100">
+                      {tabOrders.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="p-8 text-center text-neutral-400 font-semibold">
+                            Nenhum serviço nesta etapa correspondente aos filtros.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          )}
-        </div>
-      )}
+                      ) : (
+                        tabOrders.map((o) => (
+                          <tr key={o.id} className="hover:bg-neutral-50/50">
+                            <td className="p-3 font-mono font-bold text-neutral-700">{o.osNumber}</td>
+                            <td className="p-3 font-bold text-neutral-850">{o.clientName}</td>
+                            <td className="p-3">
+                              <div className="flex flex-col">
+                                <span className="font-bold">{o.storeName}</span>
+                                <span className="text-[10px] text-neutral-400 mt-0.5">{o.malote}</span>
+                              </div>
+                            </td>
+                            <td className="p-3 text-neutral-600">{o.lensType || o.serviceType}</td>
+                            <td className="p-3">
+                              <StatusBadge status={o.status} />
+                            </td>
+                            <td className="p-3 font-mono text-neutral-500">
+                              {elapsed(o.statusChangedAt || o.createdAt)}
+                            </td>
+                            <td className="p-3 text-right">
+                              <div className="flex gap-1.5 justify-end">
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => handleMoveCard(o.id, -1)}
+                                  className="h-7 text-[10px]"
+                                  disabled={o.status === 'Chegada de Malote'}
+                                >
+                                  Voltar
+                                </Button>
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  onClick={() => handleMoveCard(o.id, 1)}
+                                  className="h-7 text-[10px]"
+                                  disabled={o.status === 'Entregue ao Cliente'}
+                                >
+                                  Avançar
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Notifications History Panel */}
       {activeTab === 'notifications' && (

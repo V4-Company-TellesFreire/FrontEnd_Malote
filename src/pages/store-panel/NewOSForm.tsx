@@ -82,7 +82,6 @@ export function NewOSForm() {
 
   const {
     register,
-    handleSubmit,
     control,
     watch,
     setValue,
@@ -181,7 +180,19 @@ export function NewOSForm() {
     setValue('receiptImage', undefined);
   };
 
-  const onSubmit = (data: NewOSFormValues) => {
+  // Função chamada APENAS ao clicar em "Finalizar criação" no step 4
+  const handleFinalize = async () => {
+    // Valida todos os campos do step 4 antes de criar a OS
+    const step4Fields: Array<keyof NewOSFormValues> = [
+      'serviceType', 'deadline', 'externalLab',
+    ];
+    const isValid = await trigger(step4Fields as any);
+    if (!isValid) {
+      toast.error('Por favor, preencha os campos obrigatórios antes de finalizar.');
+      return;
+    }
+
+    const data = watch();
     createMutation.mutate(
       {
         osStore: data.osStore,
@@ -260,7 +271,7 @@ export function NewOSForm() {
         </CardContent>
       </Card>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+      <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-6">
         
         {/* SECTION 1: IDENTIFICAÇÃO */}
         {currentStep === 1 && (
@@ -749,11 +760,12 @@ export function NewOSForm() {
               </Button>
             ) : (
               <Button
-                type="submit"
+                type="button"
+                onClick={handleFinalize}
                 isLoading={createMutation.isPending}
                 className="font-bold"
               >
-                Enviar ao Laboratório
+                Finalizar criação
               </Button>
             )}
           </div>

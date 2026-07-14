@@ -39,6 +39,8 @@ export function LoginPage() {
         // Navigate based on user role
         if (res.user.role === 'laboratorio') {
           navigate('/lab');
+        } else if (res.user.role === 'gerente' || res.user.role === 'admin') {
+          navigate('/store/dashboard');
         } else {
           navigate('/selecionar-loja');
         }

@@ -16,6 +16,7 @@ export function useServiceOrders(filters?: {
     queryKey: ['serviceOrders', filters],
     queryFn: () => osApi.getServiceOrders(filters),
     refetchInterval: 5000, // Poll every 5 seconds to simulate real-time updates without fully forcing websockets
+    staleTime: 5000,
   });
 }
 

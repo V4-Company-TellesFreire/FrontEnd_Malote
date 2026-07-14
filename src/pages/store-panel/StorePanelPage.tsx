@@ -8,7 +8,7 @@ import { ClientPickupModal } from '../../components/forms/ClientPickupModal';
 import { Eye, PackageCheck, RotateCcw, PlusCircle, Search, Layers, AlertTriangle, FlaskConical, BarChart2, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
-import { useStoreMetrics } from '../../features/dashboard/hooks';
+import { useStoreMetrics, useNetworkMetrics } from '../../features/dashboard/hooks';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { getValidTransitions, getPreviousStatus, type ServiceOrderStatus } from '../../lib/constants';
 
@@ -47,8 +47,14 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
     storeId: storeId || undefined,
   });
 
-  // Load dashboard metrics
-  const { data: metrics, isLoading: isMetricsLoading } = useStoreMetrics(storeId || '');
+  // Consolidated view flag (gerente without a selected store)
+  const isConsolidatedView = user?.role === 'gerente' && !storeId;
+
+  // Load dashboard metrics — network-wide for consolidated, per-store otherwise
+  const { data: storeMetrics, isLoading: isStoreMetricsLoading } = useStoreMetrics(storeId || '', !isConsolidatedView && !!storeId);
+  const { data: networkMetrics, isLoading: isNetworkMetricsLoading } = useNetworkMetrics(isConsolidatedView);
+  const metrics = isConsolidatedView ? networkMetrics : storeMetrics;
+  const isMetricsLoading = isConsolidatedView ? isNetworkMetricsLoading : isStoreMetricsLoading;
 
   const chartData = React.useMemo(() => {
     if (!metrics) return [];
@@ -438,7 +444,10 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
                 Olá, {user?.name}!
               </h2>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Aqui está o resumo operacional da sua filial hoje.
+                {isConsolidatedView
+                  ? 'Visão consolidada de todas as filiais da rede.'
+                  : 'Aqui está o resumo operacional da sua filial hoje.'
+                }
               </p>
             </div>
 

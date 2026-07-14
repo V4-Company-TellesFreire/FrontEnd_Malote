@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, LogOut, Shield, Store, FlaskConical, PlusCircle, Eye, PackageCheck, BarChart3, RotateCcw, Bell, AlertTriangle, Settings } from 'lucide-react';
+import { Menu, LogOut, Shield, Store, FlaskConical, PlusCircle, Eye, PackageCheck, BarChart3, RotateCcw, Bell, AlertTriangle, Settings, LayoutGrid, Truck } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 import { getNavItemsForRole } from '../../lib/permissions';
@@ -19,6 +19,7 @@ const ICON_MAP: Record<string, React.ComponentType<any>> = {
   'bell': Bell,
   'alert-triangle': AlertTriangle,
   'settings': Settings,
+  'truck': Truck,
 };
 
 export function MainLayout() {
@@ -66,7 +67,13 @@ export function MainLayout() {
     setSidebarOpen(false);
   }, [location.pathname, setSidebarOpen]);
 
-  const activeStoreLabel = user?.role === 'laboratorio' ? 'Laboratório Katz' : selectedStoreName || 'Sem Filial';
+  // Gerente without a selected store = consolidated view
+  const isConsolidatedView = user?.role === 'gerente' && !selectedStoreName;
+  const activeStoreLabel = user?.role === 'laboratorio'
+    ? 'Laboratório Katz'
+    : isConsolidatedView
+      ? 'Visão Geral das Lojas'
+      : selectedStoreName || 'Sem Filial';
 
   return (
     <div className="flex min-h-screen bg-neutral-50">
@@ -168,8 +175,15 @@ export function MainLayout() {
               <Menu className="h-5 w-5" />
             </Button>
             <div className="flex items-center gap-2 select-none">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-50 border border-brand-200 text-xs font-black text-brand tracking-wide rounded-full shadow-xs">
-                <Store className="h-3.5 w-3.5 text-brand" />
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-black tracking-wide rounded-full shadow-xs ${
+                isConsolidatedView
+                  ? 'bg-highlight-50 border border-highlight-200 text-highlight-700'
+                  : 'bg-brand-50 border border-brand-200 text-brand'
+              }`}>
+                {isConsolidatedView
+                  ? <LayoutGrid className="h-3.5 w-3.5 text-highlight-600" />
+                  : <Store className="h-3.5 w-3.5 text-brand" />
+                }
                 <span>{activeStoreLabel}</span>
               </div>
               {user?.role === 'admin' && (
@@ -182,20 +196,37 @@ export function MainLayout() {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Trocar Loja Button (instead of "Online" status) */}
+            {/* Trocar Loja / Visão Geral buttons */}
             {(user?.role === 'vendedor' || user?.role === 'gerente') && (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="h-8 text-xs font-semibold px-3 flex items-center gap-1.5 bg-white hover:bg-neutral-50 border-neutral-300 rounded-lg text-neutral-700 shadow-xs"
-                onClick={() => {
-                  clearStore();
-                  navigate('/selecionar-loja');
-                }}
-              >
-                <Store className="h-3.5 w-3.5 text-neutral-400" />
-                <span>Trocar Loja</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                {/* Gerente viewing a specific store: show button to return to consolidated view */}
+                {user?.role === 'gerente' && selectedStoreName && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-8 text-xs font-semibold px-3 flex items-center gap-1.5 bg-highlight-50 hover:bg-highlight-100 border-highlight-200 rounded-lg text-highlight-700 shadow-xs"
+                    onClick={() => {
+                      clearStore();
+                      navigate('/store/dashboard');
+                    }}
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5 text-highlight-600" />
+                    <span>Visão Geral</span>
+                  </Button>
+                )}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="h-8 text-xs font-semibold px-3 flex items-center gap-1.5 bg-white hover:bg-neutral-50 border-neutral-300 rounded-lg text-neutral-700 shadow-xs"
+                  onClick={() => {
+                    clearStore();
+                    navigate('/selecionar-loja');
+                  }}
+                >
+                  <Store className="h-3.5 w-3.5 text-neutral-400" />
+                  <span>Trocar Loja</span>
+                </Button>
+              </div>
             )}
 
             {/* Profile trigger dropdown wrapper */}
