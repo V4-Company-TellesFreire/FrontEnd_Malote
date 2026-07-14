@@ -206,9 +206,9 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
   return (
     <div className="flex flex-col gap-6">
       {/* Motoboy dispatch action bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-xl border border-accent-200 bg-accent-50/20 shadow-xs gap-3">
+      <div className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-xl border border-brand-200 bg-brand-50/20 shadow-xs gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-accent rounded-lg flex items-center justify-center text-white">
+          <div className="h-10 w-10 bg-brand rounded-lg flex items-center justify-center text-white">
             <Truck className="h-5 w-5" />
           </div>
           <div className="flex flex-col gap-0.5">
@@ -219,7 +219,7 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
           </div>
         </div>
         <Button
-          variant="accent"
+          variant="primary"
           size="sm"
           onClick={handleMotoboyDispatch}
           className="font-bold flex items-center gap-1.5 shrink-0"

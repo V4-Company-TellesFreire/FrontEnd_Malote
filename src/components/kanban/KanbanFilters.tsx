@@ -41,7 +41,7 @@ export function KanbanFilters({ filters, onChange, onClear }: KanbanFiltersProps
           value={filters.search}
           onChange={(e) => handleFieldChange('search', e.target.value)}
           className="pl-9"
-          leftIcon={<Search className="h-4 w-4 text-neutral-400 absolute left-3 top-[34px]" />}
+          leftIcon={<Search className="h-4 w-4 text-neutral-400" />}
         />
       </div>
 
