@@ -54,4 +54,16 @@ export class AuthHttpApi implements IAuthApi {
       body: JSON.stringify({ refreshToken: token }),
     });
   }
+
+  async getUsers(_filters?: { storeId?: string; role?: string }): Promise<(AuthUser & { passwordPin?: string })[]> {
+    throw new Error('Not implemented');
+  }
+
+  async createUser(_payload: any): Promise<AuthUser> {
+    throw new Error('Not implemented');
+  }
+
+  async updateUser(_id: string, _payload: any): Promise<AuthUser> {
+    throw new Error('Not implemented');
+  }
 }

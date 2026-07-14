@@ -50,3 +50,30 @@ export function useForgotPassword() {
     mutationFn: (email: string) => authApi.forgotPassword(email),
   });
 }
+
+export function useUsers(filters?: { storeId?: string; role?: string }) {
+  return useQuery({
+    queryKey: ['users', filters],
+    queryFn: () => authApi.getUsers(filters),
+  });
+}
+
+export function useCreateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: any) => authApi.createUser(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+}
+
+export function useUpdateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) => authApi.updateUser(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+}

@@ -139,11 +139,28 @@ export function MainLayout() {
           })}
         </nav>
 
-        {/* Footer Logout */}
-        <div className="p-4 border-t border-brand-700">
+        {/* Footer Logout / Settings */}
+        <div className="p-4 border-t border-brand-700 flex flex-col gap-1.5 animate-slide-in-bottom">
+          {(user?.role === 'gerente' || user?.role === 'admin') && (
+            <Button
+              variant="ghost"
+              className={`w-full justify-start text-xs ${
+                location.pathname === '/store/config'
+                  ? 'bg-brand-600 text-white font-bold'
+                  : 'text-brand-100 hover:text-white hover:bg-brand-600/40'
+              }`}
+              leftIcon={<Settings className="h-4.5 w-4.5" />}
+              onClick={() => {
+                setSidebarOpen(false);
+                navigate('/store/config');
+              }}
+            >
+              Configurações
+            </Button>
+          )}
           <Button
             variant="ghost"
-            className="w-full text-brand-100 hover:text-white hover:bg-brand-600/40 justify-start"
+            className="w-full text-brand-100 hover:text-white hover:bg-brand-600/40 justify-start text-xs"
             leftIcon={<LogOut className="h-4.5 w-4.5" />}
             onClick={handleLogout}
           >

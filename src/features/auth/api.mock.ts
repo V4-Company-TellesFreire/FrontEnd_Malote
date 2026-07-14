@@ -1,8 +1,10 @@
 import type { IAuthApi } from './api';
 import type { AuthUser, LoginRequest, LoginResponse } from '../../lib/types';
+import { uid } from '../../lib/utils';
 
-// Predefined mock users
-const MOCK_USERS: Record<string, AuthUser & { passwordPin: string }> = {
+const USERS_STORAGE_KEY = 'oticas_carol_users';
+
+const DEFAULT_USERS: Record<string, AuthUser & { passwordPin: string }> = {
   'vendedor@carol.com': {
     id: 'usr_vend_1',
     name: 'Carlos Vendedor',
@@ -12,7 +14,7 @@ const MOCK_USERS: Record<string, AuthUser & { passwordPin: string }> = {
     storeName: 'Norte 1',
     isActive: true,
     createdAt: new Date().toISOString(),
-    passwordPin: '1037', // default pin for Norte 1 or password
+    passwordPin: '1037',
   },
   'gerente@carol.com': {
     id: 'usr_ger_1',
@@ -49,16 +51,29 @@ const MOCK_USERS: Record<string, AuthUser & { passwordPin: string }> = {
   },
 };
 
+function getStoredUsers(): Record<string, AuthUser & { passwordPin: string }> {
+  const data = localStorage.getItem(USERS_STORAGE_KEY);
+  if (!data) {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_USERS));
+    return DEFAULT_USERS;
+  }
+  return JSON.parse(data);
+}
+
+function saveUsers(users: Record<string, AuthUser & { passwordPin: string }>) {
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+}
+
 export class AuthMockApi implements IAuthApi {
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    await new Promise((resolve) => setTimeout(resolve, 800)); // simulate network delay
-
-    const user = MOCK_USERS[credentials.email.toLowerCase()];
+    await new Promise((resolve) => setTimeout(resolve, 300)); // reduce login delay for better UX
+    
+    const users = getStoredUsers();
+    const user = users[credentials.email.toLowerCase()];
     if (!user) {
       throw { code: 'INVALID_CREDENTIALS', message: 'E-mail ou senha inválidos.' };
     }
 
-    // Accept both 'password' or the role's PIN as password for easy demonstration
     if (credentials.password !== 'password' && credentials.password !== user.passwordPin) {
       throw { code: 'INVALID_CREDENTIALS', message: 'E-mail ou senha inválidos.' };
     }
@@ -77,13 +92,14 @@ export class AuthMockApi implements IAuthApi {
   }
 
   async getCurrentUser(token: string): Promise<AuthUser> {
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     if (!token.startsWith('mock-jwt-token-for-')) {
       throw { code: 'UNAUTHORIZED', message: 'Token de autenticação inválido.' };
     }
 
     const userId = token.replace('mock-jwt-token-for-', '');
-    const user = Object.values(MOCK_USERS).find((u) => u.id === userId);
+    const users = getStoredUsers();
+    const user = Object.values(users).find((u) => u.id === userId);
     
     if (!user) {
       throw { code: 'USER_NOT_FOUND', message: 'Usuário não encontrado.' };
@@ -94,8 +110,9 @@ export class AuthMockApi implements IAuthApi {
   }
 
   async forgotPassword(email: string): Promise<{ message: string }> {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    const user = MOCK_USERS[email.toLowerCase()];
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const users = getStoredUsers();
+    const user = users[email.toLowerCase()];
     if (!user) {
       throw { code: 'EMAIL_NOT_FOUND', message: 'E-mail não cadastrado.' };
     }
@@ -103,12 +120,13 @@ export class AuthMockApi implements IAuthApi {
   }
 
   async refreshToken(token: string): Promise<LoginResponse> {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 200));
     if (!token.startsWith('mock-refresh-token-for-')) {
       throw { code: 'UNAUTHORIZED', message: 'Refresh token inválido.' };
     }
     const userId = token.replace('mock-refresh-token-for-', '');
-    const user = Object.values(MOCK_USERS).find((u) => u.id === userId);
+    const users = getStoredUsers();
+    const user = Object.values(users).find((u) => u.id === userId);
 
     if (!user) {
       throw { code: 'USER_NOT_FOUND', message: 'Usuário não encontrado.' };
@@ -121,5 +139,88 @@ export class AuthMockApi implements IAuthApi {
       token: `mock-jwt-token-for-${user.id}`,
       refreshToken: token,
     };
+  }
+
+  // Seller / User management
+  async getUsers(filters?: { storeId?: string; role?: string }): Promise<(AuthUser & { passwordPin?: string })[]> {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const users = Object.values(getStoredUsers());
+    
+    let result = users;
+    if (filters) {
+      if (filters.storeId) {
+        result = result.filter(u => u.storeId === filters.storeId);
+      }
+      if (filters.role) {
+        result = result.filter(u => u.role === filters.role);
+      }
+    }
+
+    // Sort by name
+    return result.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async createUser(payload: any): Promise<AuthUser> {
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const users = getStoredUsers();
+    const emailKey = payload.email.toLowerCase();
+
+    if (users[emailKey]) {
+      throw { code: 'USER_EXISTS', message: 'Já existe um usuário cadastrado com este e-mail.' };
+    }
+
+    const newUser: AuthUser & { passwordPin: string } = {
+      id: `usr_${uid()}`,
+      name: payload.name,
+      email: payload.email,
+      role: payload.role || 'vendedor',
+      storeId: payload.storeId || null,
+      storeName: payload.storeName || null,
+      isActive: payload.isActive !== undefined ? payload.isActive : true,
+      createdAt: new Date().toISOString(),
+      passwordPin: payload.passwordPin || '1234',
+    };
+
+    users[emailKey] = newUser;
+    saveUsers(users);
+
+    const { passwordPin, ...userWithoutPassword } = newUser;
+    return userWithoutPassword;
+  }
+
+  async updateUser(id: string, payload: any): Promise<AuthUser> {
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const users = getStoredUsers();
+    const emailKey = Object.keys(users).find(key => users[key].id === id);
+
+    if (!emailKey) {
+      throw { code: 'USER_NOT_FOUND', message: 'Usuário não encontrado.' };
+    }
+
+    const existingUser = users[emailKey];
+    
+    // Check email changes
+    const newEmailKey = payload.email ? payload.email.toLowerCase() : emailKey;
+    if (newEmailKey !== emailKey && users[newEmailKey]) {
+      throw { code: 'USER_EXISTS', message: 'Já existe um usuário cadastrado com este e-mail.' };
+    }
+
+    const updatedUser = {
+      ...existingUser,
+      name: payload.name !== undefined ? payload.name : existingUser.name,
+      email: payload.email !== undefined ? payload.email : existingUser.email,
+      role: payload.role !== undefined ? payload.role : existingUser.role,
+      storeId: payload.storeId !== undefined ? payload.storeId : existingUser.storeId,
+      storeName: payload.storeName !== undefined ? payload.storeName : existingUser.storeName,
+      isActive: payload.isActive !== undefined ? payload.isActive : existingUser.isActive,
+      passwordPin: payload.passwordPin !== undefined ? payload.passwordPin : existingUser.passwordPin,
+    };
+
+    delete users[emailKey];
+    users[newEmailKey] = updatedUser;
+    saveUsers(users);
+
+    const { passwordPin, ...userWithoutPassword } = updatedUser;
+    return userWithoutPassword;
   }
 }

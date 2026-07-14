@@ -8,6 +8,7 @@ import { LabPanelPage } from '../pages/lab-panel/LabPanelPage';
 import { StoreDashboardPage } from '../pages/dashboard/StoreDashboardPage';
 import { NewOSForm } from '../pages/store-panel/NewOSForm';
 import { ProfilePage } from '../pages/profile/ProfilePage';
+import { SellerManagementPage } from '../pages/store-panel/SellerManagementPage';
 
 // Helper component for private routes requiring active login session
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
@@ -88,6 +89,14 @@ export function AppRoutes() {
           <Route path="store/track" element={<StorePanelPage initialTab="track" />} />
           <Route path="store/new" element={<NewOSForm />} />
           <Route path="store/deliveries" element={<StorePanelPage initialTab="deliveries" />} />
+          <Route
+            path="store/config"
+            element={
+              <ProtectedRoute allowedRoles={['gerente', 'admin']}>
+                <SellerManagementPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="rectifications" element={<StorePanelPage initialTab="rectifications" />} />
           <Route path="profile" element={<ProfilePage />} />
 
