@@ -12,3 +12,4 @@ export * from './Tabs';
 export * from './Chip';
 export * from './StatusBadge';
 export * from './Avatar';
+export * from './SearchableDropdown';

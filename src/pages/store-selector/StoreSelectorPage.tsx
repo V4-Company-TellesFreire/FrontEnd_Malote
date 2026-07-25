@@ -49,10 +49,9 @@ export function StoreSelectorPage() {
     navigate('/');
   };
 
-  // If user is lab or admin and has no direct shop restrict, allow choosing freely
+  // If user is not a manager (gerente), bypass store selection
   React.useEffect(() => {
-    if (user && user.role !== 'vendedor' && user.role !== 'gerente') {
-      // Lab / Admin bypass selection and land directly
+    if (user && user.role !== 'gerente') {
       navigate('/');
     }
   }, [user, navigate]);

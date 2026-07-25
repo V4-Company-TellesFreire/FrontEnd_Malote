@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { MainLayout } from './layouts/MainLayout';
@@ -9,6 +10,7 @@ import { StoreDashboardPage } from '../pages/dashboard/StoreDashboardPage';
 import { NewOSForm } from '../pages/store-panel/NewOSForm';
 import { ProfilePage } from '../pages/profile/ProfilePage';
 import { SellerManagementPage } from '../pages/store-panel/SellerManagementPage';
+import { DeliveryPanelPage } from '../pages/delivery-panel/DeliveryPanelPage';
 
 // Helper component for private routes requiring active login session
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
@@ -21,7 +23,12 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     // Redirect unauthorized roles back to respective landing page
-    const defaultLanding = user.role === 'laboratorio' ? '/lab' : '/store/dashboard';
+    const defaultLanding =
+      user.role === 'laboratorio'
+        ? '/lab'
+        : user.role === 'motoboy'
+        ? '/delivery-panel'
+        : '/store/dashboard';
     return <Navigate to={defaultLanding} replace />;
   }
 
@@ -32,11 +39,20 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
 function StoreSelectionRoute({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user);
   const selectedStoreId = useAuthStore((s) => s.selectedStoreId);
+  const selectStore = useAuthStore((s) => s.selectStore);
+
+  React.useEffect(() => {
+    if (user?.role === 'vendedor' && !selectedStoreId) {
+      const storeId = user.storeId || 'norte-1';
+      const storeName = user.storeName || 'Norte 1';
+      selectStore(storeId, storeName);
+    }
+  }, [user, selectedStoreId, selectStore]);
 
   // Only vendedor MUST select a store. Gerente can operate in consolidated mode
   const needsSelection = user?.role === 'vendedor';
   if (needsSelection && !selectedStoreId) {
-    return <Navigate to="/selecionar-loja" replace />;
+    return null; // Wait for useEffect to auto-select the fixed store
   }
 
   return <>{children}</>;
@@ -55,7 +71,7 @@ export function AppRoutes() {
         <Route
           path="/selecionar-loja"
           element={
-            <ProtectedRoute allowedRoles={['vendedor', 'gerente', 'admin']}>
+            <ProtectedRoute allowedRoles={['gerente', 'admin']}>
               <StoreSelectorPage />
             </ProtectedRoute>
           }
@@ -78,6 +94,8 @@ export function AppRoutes() {
             element={
               user?.role === 'laboratorio' ? (
                 <Navigate to="/lab" replace />
+              ) : user?.role === 'motoboy' ? (
+                <Navigate to="/delivery-panel" replace />
               ) : (
                 <Navigate to="/store/dashboard" replace />
               )
@@ -88,6 +106,7 @@ export function AppRoutes() {
           <Route path="store/dashboard" element={<StorePanelPage initialTab="dashboard" />} />
           <Route path="store/track" element={<StorePanelPage initialTab="track" />} />
           <Route path="store/new" element={<NewOSForm />} />
+          <Route path="store/edit/:id" element={<NewOSForm />} />
           <Route path="store/deliveries" element={<StorePanelPage initialTab="deliveries" />} />
           <Route
             path="store/config"
@@ -99,6 +118,16 @@ export function AppRoutes() {
           />
           <Route path="rectifications" element={<StorePanelPage initialTab="rectifications" />} />
           <Route path="profile" element={<ProfilePage />} />
+
+          {/* Motoboy panel */}
+          <Route
+            path="delivery-panel"
+            element={
+              <ProtectedRoute allowedRoles={['motoboy', 'admin']}>
+                <DeliveryPanelPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Laboratório */}
           <Route

@@ -42,7 +42,9 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
 
   // Filters State
   const [filters, setFilters] = React.useState<KanbanFiltersData>({
-    search: '',
+    osNumber: '',
+    client: '',
+    seller: '',
     malote: '',
     urgency: '',
     storeId: '',
@@ -67,23 +69,31 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
   const sendWhatsAppMutation = useSendWhatsApp();
 
   const handleClearFilters = () => {
-    setFilters({ search: '', malote: '', urgency: '', storeId: '' });
+    setFilters({ osNumber: '', client: '', seller: '', malote: '', urgency: '', storeId: '' });
   };
 
   // Filter orders lists
   const filteredOrders = React.useMemo(() => {
     if (!orders) return [];
     return orders.filter((o) => {
-      const matchesSearch =
-        o.osNumber.toLowerCase().includes(filters.search.toLowerCase()) ||
-        o.osStore.toLowerCase().includes(filters.search.toLowerCase()) ||
-        o.clientName.toLowerCase().includes(filters.search.toLowerCase());
+      const matchesOsNumber = filters.osNumber
+        ? o.osNumber.toLowerCase().includes(filters.osNumber.toLowerCase()) ||
+          o.osStore.toLowerCase().includes(filters.osNumber.toLowerCase())
+        : true;
+
+      const matchesClient = filters.client
+        ? o.clientName.toLowerCase().includes(filters.client.toLowerCase())
+        : true;
+
+      const matchesSeller = filters.seller
+        ? (o.sellerName || '').toLowerCase().includes(filters.seller.toLowerCase())
+        : true;
 
       const matchesMalote = filters.malote ? o.malote === filters.malote : true;
       const matchesUrgency = filters.urgency !== '' ? o.urgency === Number(filters.urgency) : true;
       const matchesStore = filters.storeId ? o.storeId === filters.storeId : true;
 
-      return matchesSearch && matchesMalote && matchesUrgency && matchesStore;
+      return matchesOsNumber && matchesClient && matchesSeller && matchesMalote && matchesUrgency && matchesStore;
     });
   }, [orders, filters]);
 

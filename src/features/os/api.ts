@@ -16,6 +16,13 @@ export interface IServiceOrdersApi {
   
   createServiceOrder(payload: CreateOSPayload, userId: string, userName: string): Promise<ServiceOrder>;
   
+  updateServiceOrder(
+    id: string,
+    payload: CreateOSPayload,
+    userId: string,
+    userName: string
+  ): Promise<ServiceOrder>;
+  
   transitionStatus(
     id: string,
     payload: TransitionPayload,

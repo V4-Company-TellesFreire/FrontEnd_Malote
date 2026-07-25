@@ -1,16 +1,17 @@
 import * as React from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { useServiceOrders, useTransitionStatus } from '../../features/os/hooks';
-import { Tabs, Input, Button, Skeleton, EmptyState, ErrorState, useToast } from '../../components/ui';
+import { Tabs, Button, Skeleton, EmptyState, ErrorState, useToast, SearchableDropdown } from '../../components/ui';
 import { KanbanColumn } from '../../components/kanban/KanbanColumn';
 import { ReceiptConfirmationModal } from '../../components/forms/ReceiptConfirmationModal';
 import { ClientPickupModal } from '../../components/forms/ClientPickupModal';
-import { Eye, PackageCheck, RotateCcw, PlusCircle, Search, Layers, AlertTriangle, FlaskConical, BarChart2, Loader2 } from 'lucide-react';
+import { Eye, PackageCheck, RotateCcw, PlusCircle, Layers, AlertTriangle, FlaskConical, BarChart2, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { useStoreMetrics, useNetworkMetrics } from '../../features/dashboard/hooks';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { getValidTransitions, getPreviousStatus, type ServiceOrderStatus } from '../../lib/constants';
+import { canPerformTransition } from '../../lib/permissions';
 import { useDragToScroll } from '../../hooks/useDragToScroll';
 
 export interface StorePanelPageProps {
@@ -26,7 +27,8 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
   const deliveriesDragRef = useDragToScroll();
 
   const [activeTab, setActiveTab] = React.useState<string>(initialTab);
-  const [searchQuery, setSearchQuery] = React.useState('');
+  const [clientFilter, setClientFilter] = React.useState('');
+  const [osNumberFilter, setOsNumberFilter] = React.useState('');
   const [sellerFilter, setSellerFilter] = React.useState('');
 
   React.useEffect(() => {
@@ -107,25 +109,44 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
     ].filter(v => v.value > 0);
   }, [metrics]);
 
+  // Unique options for dropdown lists extracted from active orders
+  const osNumberOptions = React.useMemo(() => {
+    if (!orders) return [];
+    return Array.from(new Set(orders.map((o) => o.osNumber).filter(Boolean))).sort();
+  }, [orders]);
+
+  const clientOptions = React.useMemo(() => {
+    if (!orders) return [];
+    return Array.from(new Set(orders.map((o) => o.clientName).filter(Boolean))).sort();
+  }, [orders]);
+
+  const sellerOptions = React.useMemo(() => {
+    if (!orders) return [];
+    return Array.from(new Set(orders.map((o) => o.sellerName).filter(Boolean))).sort();
+  }, [orders]);
+
   const transitionMutation = useTransitionStatus();
 
   // Filter orders
   const filteredOrders = React.useMemo(() => {
     if (!orders) return [];
     return orders.filter((o) => {
-      // Search OS number, store number or client name
-      const matchesSearch =
-        o.osNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        o.osStore.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        o.clientName.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesSeller = sellerFilter
-        ? o.sellerName.toLowerCase().includes(sellerFilter.toLowerCase())
+      const matchesClient = clientFilter
+        ? o.clientName.toLowerCase().includes(clientFilter.toLowerCase())
         : true;
 
-      return matchesSearch && matchesSeller;
+      const matchesOsNumber = osNumberFilter
+        ? o.osNumber.toLowerCase().includes(osNumberFilter.toLowerCase()) ||
+          o.osStore.toLowerCase().includes(osNumberFilter.toLowerCase())
+        : true;
+
+      const matchesSeller = sellerFilter
+        ? (o.sellerName || '').toLowerCase().includes(sellerFilter.toLowerCase())
+        : true;
+
+      return matchesClient && matchesOsNumber && matchesSeller;
     });
-  }, [orders, searchQuery, sellerFilter]);
+  }, [orders, clientFilter, osNumberFilter, sellerFilter]);
 
   // Orders counts
   const activeOrders = React.useMemo(() => {
@@ -175,6 +196,12 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
       const nextStatuses = getValidTransitions(order.status);
       if (nextStatuses.length > 0) {
         const targetStatus = nextStatuses[0];
+        const isCreator = order.createdBy === user?.id;
+        if (!canPerformTransition(user?.role || 'vendedor', order.status, targetStatus, isCreator)) {
+          toast.error('Você não tem permissão para mover esta ordem de serviço.');
+          return;
+        }
+
         transitionMutation.mutate(
           {
             id,
@@ -194,6 +221,12 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
       // Backward transition
       const prevStatus = getPreviousStatus(order.status);
       if (prevStatus) {
+        const isCreator = order.createdBy === user?.id;
+        if (!canPerformTransition(user?.role || 'vendedor', order.status, prevStatus, isCreator)) {
+          toast.error('Você não tem permissão para mover esta ordem de serviço.');
+          return;
+        }
+
         transitionMutation.mutate(
           {
             id,
@@ -463,27 +496,38 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
           <div className="flex flex-col gap-6">
             {/* Search and Filters Section */}
             <div className="flex flex-col md:flex-row gap-3 items-end p-4 rounded-xl border border-neutral-200 bg-white shadow-xs w-full">
-              <div className="flex-1 w-full relative">
-                <Input
-                  label="Buscar por OS ou cliente"
-                  placeholder="Ex: 123456, João..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  leftIcon={<Search className="h-4 w-4 text-neutral-400" />}
+              <div className="w-full md:w-44">
+                <SearchableDropdown
+                  label="Nº da OS"
+                  placeholder="Todas as OS"
+                  searchPlaceholder="Buscar OS..."
+                  options={osNumberOptions}
+                  value={osNumberFilter}
+                  onChange={setOsNumberFilter}
                 />
               </div>
 
-              {/* Seller Filter (only for non-vendedores) */}
-              {user?.role !== 'vendedor' && (
-                <div className="w-full md:w-56">
-                  <Input
-                    label="Filtrar por Vendedor"
-                    placeholder="Nome do vendedor"
-                    value={sellerFilter}
-                    onChange={(e) => setSellerFilter(e.target.value)}
-                  />
-                </div>
-              )}
+              <div className="flex-1 w-full">
+                <SearchableDropdown
+                  label="Cliente"
+                  placeholder="Todos os clientes"
+                  searchPlaceholder="Buscar cliente..."
+                  options={clientOptions}
+                  value={clientFilter}
+                  onChange={setClientFilter}
+                />
+              </div>
+
+              <div className="w-full md:w-56">
+                <SearchableDropdown
+                  label="Vendedor"
+                  placeholder="Todos os vendedores"
+                  searchPlaceholder="Buscar vendedor..."
+                  options={sellerOptions}
+                  value={sellerFilter}
+                  onChange={setSellerFilter}
+                />
+              </div>
 
               <Button
                 variant="highlight"

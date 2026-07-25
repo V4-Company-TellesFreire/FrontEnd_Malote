@@ -2,10 +2,10 @@ import * as React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, X } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Upload, X, Loader2 } from 'lucide-react';
 import { ALL_STORES, RECIPE_TYPES, FRAME_ORIGINS, FRAME_MATERIALS, LENS_TYPES, LENS_MATERIALS, TREATMENTS, LAB_PARTNERS, SERVICE_TYPES, URGENCY_LEVELS, URGENCY_REASONS } from '../../lib/constants';
-import { useCreateServiceOrder } from '../../features/os/hooks';
+import { useCreateServiceOrder, useUpdateServiceOrder, useServiceOrderById } from '../../features/os/hooks';
 import { useAuthStore } from '../../store/authStore';
 import { Input, Select, Button, Chip, Card, CardContent, useToast } from '../../components/ui';
 import { formatPhone } from '../../lib/utils';
@@ -69,11 +69,17 @@ type NewOSFormValues = z.infer<typeof newOsSchema>;
 
 export function NewOSForm() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const isEditMode = !!id;
+
   const toast = useToast();
   const user = useAuthStore((s) => s.user);
   const activeStoreName = useAuthStore((s) => s.selectedStoreName);
   
+  const { data: osData, isLoading: isLoadingOS } = useServiceOrderById(id || '');
+
   const createMutation = useCreateServiceOrder();
+  const updateMutation = useUpdateServiceOrder();
 
   const [selectedTreatments, setSelectedTreatments] = React.useState<string[]>([]);
   const [photoPreview, setPhotoPreview] = React.useState<string | null>(null);
@@ -86,6 +92,7 @@ export function NewOSForm() {
     watch,
     setValue,
     trigger,
+    reset,
     formState: { errors },
   } = useForm<NewOSFormValues>({
     resolver: zodResolver(newOsSchema) as any,
@@ -114,6 +121,56 @@ export function NewOSForm() {
       urgencyExtreme: '',
     },
   });
+
+  React.useEffect(() => {
+    if (osData) {
+      reset({
+        storeName: osData.storeName,
+        osStore: osData.osStore,
+        clientName: osData.clientName,
+        clientPhone: osData.clientPhone || '',
+        sellerName: osData.sellerName,
+        entryDate: osData.entryDate ? osData.entryDate.slice(0, 10) : new Date().toISOString().slice(0, 10),
+        recipeType: osData.recipeType || 'Receita médica',
+        frameOrigin: osData.frameOrigin || 'Fornecida pela loja',
+        frameMaterial: osData.frameMaterial || 'Acetato',
+        frameReference: osData.frameReference || '',
+        frameColor: osData.frameColor || '',
+        frameBrand: osData.frameBrand || '',
+        lensType: osData.lensType || 'Visão simples',
+        lensMaterial: osData.lensMaterial || 'CR-39',
+        treatments: osData.treatments || '',
+        externalLab: osData.externalLab || false,
+        labName: osData.labName || '',
+        serviceType: osData.serviceType || 'Montagem completa',
+        deadline: osData.deadline ? osData.deadline.slice(0, 10) : new Date(Date.now() + 4 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+        technician: osData.technician || '',
+        observations: osData.observations || '',
+        urgency: osData.urgency || 0,
+        urgencyReason: osData.urgencyReason || '',
+        urgencyObservation: osData.urgencyObservation || '',
+        urgencyExtreme: osData.urgencyExtreme || '',
+      });
+      
+      if (osData.treatments) {
+        setSelectedTreatments(osData.treatments.split(', ').filter(Boolean));
+      }
+      if (osData.receiptImageUrl) {
+        setPhotoPreview(osData.receiptImageUrl);
+      }
+    }
+  }, [osData, reset]);
+
+  React.useEffect(() => {
+    if (osData && user) {
+      const isVendedor = user.role === 'vendedor';
+      const isCreator = osData.createdBy === user.id;
+      if (isVendedor && !isCreator) {
+        toast.error('Você não tem permissão para editar esta Ordem de Serviço.');
+        navigate('/store/dashboard');
+      }
+    }
+  }, [osData, user, navigate, toast]);
 
   const watchExternalLab = watch('externalLab');
   const watchUrgency = watch('urgency');
@@ -193,47 +250,101 @@ export function NewOSForm() {
     }
 
     const data = watch();
-    createMutation.mutate(
-      {
-        osStore: data.osStore,
-        clientName: data.clientName,
-        clientPhone: data.clientPhone || '',
-        storeName: data.storeName,
-        sellerName: data.sellerName,
-        entryDate: data.entryDate,
-        recipeType: data.recipeType,
-        prescription: data.prescription || null,
-        frameOrigin: data.frameOrigin,
-        frameMaterial: data.frameMaterial || '',
-        frameReference: data.frameReference || '',
-        frameColor: data.frameColor || '',
-        frameBrand: data.frameBrand || '',
-        lensType: data.lensType,
-        lensMaterial: data.lensMaterial,
-        treatments: data.treatments || '',
-        externalLab: data.externalLab,
-        labName: data.labName || '',
-        serviceType: data.serviceType,
-        deadline: data.deadline,
-        technician: data.technician || '',
-        observations: data.observations || '',
-        urgency: data.urgency as any,
-        urgencyReason: data.urgencyReason || '',
-        urgencyObservation: data.urgencyObservation || '',
-        urgencyExtreme: data.urgencyExtreme || '',
-        receiptImage: photoFile,
-      },
-      {
-        onSuccess: () => {
-          toast.success('Ordem de serviço cadastrada com sucesso!');
-          navigate('/store/dashboard');
+    if (isEditMode) {
+      updateMutation.mutate(
+        {
+          id: id!,
+          payload: {
+            osStore: data.osStore,
+            clientName: data.clientName,
+            clientPhone: data.clientPhone || '',
+            storeName: data.storeName,
+            sellerName: data.sellerName,
+            entryDate: data.entryDate,
+            recipeType: data.recipeType,
+            prescription: data.prescription || null,
+            frameOrigin: data.frameOrigin,
+            frameMaterial: data.frameMaterial || '',
+            frameReference: data.frameReference || '',
+            frameColor: data.frameColor || '',
+            frameBrand: data.frameBrand || '',
+            lensType: data.lensType,
+            lensMaterial: data.lensMaterial,
+            treatments: data.treatments || '',
+            externalLab: data.externalLab,
+            labName: data.labName || '',
+            serviceType: data.serviceType,
+            deadline: data.deadline,
+            technician: data.technician || '',
+            observations: data.observations || '',
+            urgency: data.urgency as any,
+            urgencyReason: data.urgencyReason || '',
+            urgencyObservation: data.urgencyObservation || '',
+            urgencyExtreme: data.urgencyExtreme || '',
+            receiptImage: photoFile,
+          },
         },
-        onError: (err: any) => {
-          toast.error(err.message || 'Falha ao salvar OS.');
+        {
+          onSuccess: () => {
+            toast.success('Ordem de serviço atualizada com sucesso!');
+            navigate('/store/dashboard');
+          },
+          onError: (err: any) => {
+            toast.error(err.message || 'Falha ao salvar OS.');
+          },
+        }
+      );
+    } else {
+      createMutation.mutate(
+        {
+          osStore: data.osStore,
+          clientName: data.clientName,
+          clientPhone: data.clientPhone || '',
+          storeName: data.storeName,
+          sellerName: data.sellerName,
+          entryDate: data.entryDate,
+          recipeType: data.recipeType,
+          prescription: data.prescription || null,
+          frameOrigin: data.frameOrigin,
+          frameMaterial: data.frameMaterial || '',
+          frameReference: data.frameReference || '',
+          frameColor: data.frameColor || '',
+          frameBrand: data.frameBrand || '',
+          lensType: data.lensType,
+          lensMaterial: data.lensMaterial,
+          treatments: data.treatments || '',
+          externalLab: data.externalLab,
+          labName: data.labName || '',
+          serviceType: data.serviceType,
+          deadline: data.deadline,
+          technician: data.technician || '',
+          observations: data.observations || '',
+          urgency: data.urgency as any,
+          urgencyReason: data.urgencyReason || '',
+          urgencyObservation: data.urgencyObservation || '',
+          urgencyExtreme: data.urgencyExtreme || '',
+          receiptImage: photoFile,
         },
-      }
-    );
+        {
+          onSuccess: () => {
+            toast.success('Ordem de serviço cadastrada com sucesso!');
+            navigate('/store/dashboard');
+          },
+          onError: (err: any) => {
+            toast.error(err.message || 'Falha ao salvar OS.');
+          },
+        }
+      );
+    }
   };
+
+  if (isEditMode && isLoadingOS) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto">
@@ -249,10 +360,10 @@ export function NewOSForm() {
         </Button>
         <div className="flex flex-col">
           <h2 className="text-lg font-bold text-neutral-900 leading-tight">
-            CADASTRAR NOVA OS
+            {isEditMode ? 'EDITAR ORDEM DE SERVIÇO' : 'CADASTRAR NOVA OS'}
           </h2>
           <p className="text-xs text-neutral-500">
-            Preencha a receita e especificações do óculos
+            {isEditMode ? 'Ajuste os dados e especificações do óculos' : 'Preencha a receita e especificações do óculos'}
           </p>
         </div>
       </div>
@@ -285,17 +396,28 @@ export function NewOSForm() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                <Select
-                  label="Loja Emitente"
-                  error={errors.storeName?.message}
-                  required
-                  {...register('storeName')}
-                >
-                  <option value="">Selecione...</option>
-                  {ALL_STORES.map(s => (
-                    <option key={s.id} value={s.name}>{s.name} ({s.malote})</option>
-                  ))}
-                </Select>
+                {user?.role === 'vendedor' ? (
+                  <Input
+                    label="Loja Emitente"
+                    error={errors.storeName?.message}
+                    required
+                    readOnly
+                    disabled
+                    {...register('storeName')}
+                  />
+                ) : (
+                  <Select
+                    label="Loja Emitente"
+                    error={errors.storeName?.message}
+                    required
+                    {...register('storeName')}
+                  >
+                    <option value="">Selecione...</option>
+                    {ALL_STORES.map(s => (
+                      <option key={s.id} value={s.name}>{s.name} ({s.malote})</option>
+                    ))}
+                  </Select>
+                )}
 
                 <Input
                   label="Nº OS da Loja"
@@ -762,10 +884,10 @@ export function NewOSForm() {
               <Button
                 type="button"
                 onClick={handleFinalize}
-                isLoading={createMutation.isPending}
+                isLoading={isEditMode ? updateMutation.isPending : createMutation.isPending}
                 className="font-bold"
               >
-                Finalizar criação
+                {isEditMode ? 'Salvar Alterações' : 'Finalizar criação'}
               </Button>
             )}
           </div>

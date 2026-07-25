@@ -118,6 +118,8 @@ export interface ServiceOrder {
   parentOsId: string | null;  // If this is a rectification child
   isStopped: boolean;         // Critical hold
   stoppedReason: string | null;
+  createdBy?: string;         // ID of the user who created this OS
+  createdByRole?: string;     // Role of the user who created this OS
   auditLog: AuditLogEntry[];
 }
 
@@ -240,4 +242,5 @@ export interface TransitionPayload {
   photoUrl?: string;
   urgency?: UrgencyLevel;
   mountingOrigin?: MountingOrigin;
+  receivedBy?: string;
 }

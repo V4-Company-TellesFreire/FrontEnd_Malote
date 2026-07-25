@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight, Clock, Image, AlertTriangle, Store } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Image, AlertTriangle, Store, Edit2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { canPerformTransition } from '../../lib/permissions';
 import { getPreviousStatus, getValidTransitions } from '../../lib/constants';
@@ -51,8 +52,14 @@ export function KanbanCard({
 
   // Next standard navigation allows check
   const nextTarget = validTransitions[0];
-  const canGoForward = nextTarget && canPerformTransition(userRole, order.status, nextTarget) && !isPendingReceipt && !isPendingPickup;
-  const canGoBackward = prevStatus && canPerformTransition(userRole, order.status, prevStatus);
+  const isCreator = order.createdBy === user?.id;
+  const canGoForward = nextTarget && canPerformTransition(userRole, order.status, nextTarget, isCreator) && !isPendingReceipt && !isPendingPickup;
+  const canGoBackward = prevStatus && canPerformTransition(userRole, order.status, prevStatus, isCreator);
+
+  const canEdit =
+    userRole === 'admin' ||
+    userRole === 'gerente' ||
+    (userRole === 'vendedor' && isCreator);
 
   return (
     <div
@@ -127,6 +134,17 @@ export function KanbanCard({
           <Image className="h-3.5 w-3.5" />
           Visualizar Receita / Anexo
         </button>
+      )}
+
+      {/* Edit OS button if permitted */}
+      {canEdit && (
+        <Link
+          to={`/store/edit/${order.id}`}
+          className="flex items-center justify-center gap-1.5 w-full py-1 rounded bg-white border border-neutral-350 text-neutral-700 text-[10px] font-bold hover:bg-neutral-100 hover:text-neutral-900 active:scale-95 transition-all duration-150 cursor-pointer select-none"
+        >
+          <Edit2 className="h-3 w-3" />
+          Editar Informações
+        </Link>
       )}
 
       {/* Critical Deviation / Manual Alerts */}

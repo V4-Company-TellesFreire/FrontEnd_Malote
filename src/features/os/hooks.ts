@@ -44,6 +44,23 @@ export function useCreateServiceOrder() {
   });
 }
 
+export function useUpdateServiceOrder() {
+  const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: CreateOSPayload }) =>
+      osApi.updateServiceOrder(id, payload, user?.id || 'anonymous', user?.name || 'Anonymous'),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['serviceOrder', data.id] });
+      queryClient.invalidateQueries({ queryKey: ['storeMetrics'] });
+      queryClient.invalidateQueries({ queryKey: ['networkMetrics'] });
+      queryClient.invalidateQueries({ queryKey: ['stores'] });
+    },
+  });
+}
+
 export function useTransitionStatus() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);

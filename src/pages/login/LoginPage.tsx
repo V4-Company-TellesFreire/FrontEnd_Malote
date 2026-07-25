@@ -39,7 +39,9 @@ export function LoginPage() {
         // Navigate based on user role
         if (res.user.role === 'laboratorio') {
           navigate('/lab');
-        } else if (res.user.role === 'gerente' || res.user.role === 'admin') {
+        } else if (res.user.role === 'motoboy') {
+          navigate('/delivery-panel');
+        } else if (res.user.role === 'gerente' || res.user.role === 'admin' || res.user.role === 'vendedor') {
           navigate('/store/dashboard');
         } else {
           navigate('/selecionar-loja');
@@ -104,8 +106,9 @@ export function LoginPage() {
             </h5>
             <p className="text-[9px] text-neutral-500 leading-relaxed">
               Use <strong className="text-neutral-700">vendedor@carol.com</strong> (senha: Vendedor@Carol1037),{' '}
-              <strong className="text-neutral-700">gerente@carol.com</strong> (senha: Gerente@Carol1234), ou{' '}
-              <strong className="text-neutral-700">lab@katz.com</strong> (senha: Lab@Katz4321) para testar os perfis.
+              <strong className="text-neutral-700">gerente@carol.com</strong> (senha: Gerente@Carol1234),{' '}
+              <strong className="text-neutral-700">lab@katz.com</strong> (senha: Lab@Katz4321), ou{' '}
+              <strong className="text-neutral-700">motoboy@carol.com</strong> (senha: Motoboy@Carol4321) para testar os perfis.
             </p>
           </div>
         </div>

@@ -214,7 +214,7 @@ export function MainLayout() {
 
           <div className="flex items-center gap-4">
             {/* Trocar Loja / Visão Geral buttons */}
-            {(user?.role === 'vendedor' || user?.role === 'gerente') && (
+            {user?.role === 'gerente' && (
               <div className="flex items-center gap-2">
                 {/* Gerente viewing a specific store: show button to return to consolidated view */}
                 {user?.role === 'gerente' && selectedStoreName && (

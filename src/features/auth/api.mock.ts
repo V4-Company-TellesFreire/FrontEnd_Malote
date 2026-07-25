@@ -49,6 +49,17 @@ const DEFAULT_USERS: Record<string, AuthUser & { passwordPin: string }> = {
     createdAt: new Date().toISOString(),
     passwordPin: 'Admin@Katz9999',
   },
+  'motoboy@carol.com': {
+    id: 'usr_moto_1',
+    name: 'Mauro Motoboy',
+    email: 'motoboy@carol.com',
+    role: 'motoboy',
+    storeId: null,
+    storeName: null,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    passwordPin: 'Motoboy@Carol4321',
+  },
 };
 
 function getStoredUsers(): Record<string, AuthUser & { passwordPin: string }> {
@@ -60,11 +71,26 @@ function getStoredUsers(): Record<string, AuthUser & { passwordPin: string }> {
   
   try {
     const parsed = JSON.parse(data);
-    // Migration: If we detect the old simple pin for vendedor, force re-initialization with strong default passwords
+    
+    // Migration: Check if any default users (like motoboy) are missing in localStorage
+    let hasMissing = false;
+    for (const [email, user] of Object.entries(DEFAULT_USERS)) {
+      if (!parsed[email]) {
+        parsed[email] = user;
+        hasMissing = true;
+      }
+    }
+    
+    // If we detect the old simple pin for vendedor, force re-initialization with strong default passwords
     if (parsed['vendedor@carol.com'] && parsed['vendedor@carol.com'].passwordPin === '1037') {
       localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_USERS));
       return DEFAULT_USERS;
     }
+    
+    if (hasMissing) {
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(parsed));
+    }
+    
     return parsed;
   } catch (_e) {
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_USERS));

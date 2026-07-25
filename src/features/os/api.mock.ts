@@ -828,6 +828,8 @@ function getInitialSeedData(): ServiceOrder[] {
       parentOsId: null,
       isStopped: false,
       stoppedReason: null,
+      createdBy: o.createdBy || 'usr_vend_1',
+      createdByRole: o.createdByRole || 'vendedor',
       auditLog: defaultAudit,
       ...o
     } as ServiceOrder;
@@ -860,6 +862,17 @@ function saveStoredNotifications(notifs: WhatsAppNotification[]) {
   localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(notifs));
 }
 
+function getCurrentUserFromStorage(): any | null {
+  const raw = localStorage.getItem('malote-lab-auth');
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed?.state?.user || null;
+  } catch {
+    return null;
+  }
+}
+
 export class ServiceOrdersMockApi implements IServiceOrdersApi {
   async getServiceOrders(filters?: {
     storeId?: string;
@@ -870,6 +883,14 @@ export class ServiceOrdersMockApi implements IServiceOrdersApi {
   }): Promise<ServiceOrder[]> {
     await new Promise(resolve => setTimeout(resolve, 100));
     let orders = getStoredOrders();
+
+    const currentUser = getCurrentUserFromStorage();
+    if (currentUser && currentUser.role === 'vendedor') {
+      orders = orders.filter(o => 
+        o.storeId === currentUser.storeId && 
+        o.createdByRole === 'vendedor'
+      );
+    }
 
     if (filters) {
       if (filters.storeId) {
@@ -963,6 +984,18 @@ export class ServiceOrdersMockApi implements IServiceOrdersApi {
       parentOsId: null,
       isStopped: false,
       stoppedReason: null,
+      createdBy: userId,
+      createdByRole: (() => {
+        const rawUsers = localStorage.getItem('oticas_carol_users');
+        if (rawUsers) {
+          try {
+            const users = JSON.parse(rawUsers);
+            const matchedUser = Object.values(users).find((u: any) => u.id === userId);
+            if (matchedUser) return (matchedUser as any).role;
+          } catch {}
+        }
+        return 'vendedor';
+      })(),
       auditLog: [
         {
           id: uid(),
@@ -981,6 +1014,63 @@ export class ServiceOrdersMockApi implements IServiceOrdersApi {
     saveStoredOrders(orders);
 
     return newOrder;
+  }
+
+  async updateServiceOrder(
+    id: string,
+    payload: CreateOSPayload,
+    userId: string,
+    userName: string
+  ): Promise<ServiceOrder> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const orders = getStoredOrders();
+    const index = orders.findIndex(o => o.id === id);
+    if (index === -1) {
+      throw { code: 'ORDER_NOT_FOUND', message: 'Ordem de serviço não encontrada.' };
+    }
+
+    const existing = orders[index];
+    const updated: ServiceOrder = {
+      ...existing,
+      osStore: payload.osStore,
+      clientName: payload.clientName,
+      clientPhone: payload.clientPhone,
+      recipeType: payload.recipeType,
+      prescription: payload.prescription,
+      frameOrigin: payload.frameOrigin,
+      frameMaterial: payload.frameMaterial || '',
+      frameReference: payload.frameReference || '',
+      frameColor: payload.frameColor || '',
+      frameBrand: payload.frameBrand || '',
+      lensType: payload.lensType,
+      lensMaterial: payload.lensMaterial,
+      treatments: payload.treatments || '',
+      externalLab: payload.externalLab,
+      labName: payload.labName || '',
+      serviceType: payload.serviceType,
+      deadline: payload.deadline,
+      technician: payload.technician || '',
+      observations: payload.observations || '',
+      urgency: payload.urgency as any,
+      urgencyReason: payload.urgencyReason || '',
+      urgencyObservation: payload.urgencyObservation || '',
+      urgencyExtreme: payload.urgencyExtreme || '',
+    };
+
+    updated.auditLog.push({
+      id: uid(),
+      timestamp: new Date().toISOString(),
+      userId,
+      userName,
+      action: 'Edição de OS',
+      fromStatus: null,
+      toStatus: null,
+      details: 'Informações gerais da ordem de serviço atualizadas pelo vendedor.',
+    });
+
+    orders[index] = updated;
+    saveStoredOrders(orders);
+    return updated;
   }
 
   async transitionStatus(
@@ -1021,7 +1111,7 @@ export class ServiceOrdersMockApi implements IServiceOrdersApi {
         observation: payload.reason || (toStatus === 'Entregue na Loja' ? 'Chegou perfeitamente' : ''),
         photoUrl: payload.photoUrl || null,
         confirmedBy: userName,
-        receivedBy: userName,
+        receivedBy: payload.receivedBy || userName,
         withinDeadline,
         deadlineDate: order.deadline || null,
       };

@@ -95,6 +95,54 @@ export class ServiceOrdersHttpApi implements IServiceOrdersApi {
     });
   }
 
+  updateServiceOrder(
+    id: string,
+    payload: CreateOSPayload,
+    userId: string,
+    userName: string
+  ): Promise<ServiceOrder> {
+    const formData = new FormData();
+    formData.append('osStore', payload.osStore);
+    formData.append('clientName', payload.clientName);
+    formData.append('clientPhone', payload.clientPhone);
+    formData.append('storeName', payload.storeName);
+    formData.append('sellerName', payload.sellerName);
+    formData.append('entryDate', payload.entryDate);
+    formData.append('recipeType', payload.recipeType);
+    formData.append('frameOrigin', payload.frameOrigin);
+    formData.append('frameMaterial', payload.frameMaterial);
+    formData.append('frameReference', payload.frameReference);
+    formData.append('frameColor', payload.frameColor);
+    formData.append('frameBrand', payload.frameBrand);
+    formData.append('lensType', payload.lensType);
+    formData.append('lensMaterial', payload.lensMaterial);
+    formData.append('treatments', payload.treatments);
+    formData.append('externalLab', String(payload.externalLab));
+    formData.append('labName', payload.labName);
+    formData.append('serviceType', payload.serviceType);
+    formData.append('deadline', payload.deadline);
+    formData.append('technician', payload.technician);
+    formData.append('observations', payload.observations);
+    formData.append('urgency', String(payload.urgency));
+    formData.append('urgencyReason', payload.urgencyReason);
+    formData.append('urgencyObservation', payload.urgencyObservation);
+    formData.append('urgencyExtreme', payload.urgencyExtreme);
+    formData.append('userId', userId);
+    formData.append('userName', userName);
+    if (payload.receiptImage) {
+      formData.append('receiptImage', payload.receiptImage);
+    }
+    if (payload.prescription) {
+      formData.append('prescription', JSON.stringify(payload.prescription));
+    }
+
+    return this.request<ServiceOrder>(`/service-orders/${id}`, {
+      method: 'PUT',
+      headers: {},
+      body: formData as any,
+    });
+  }
+
   transitionStatus(
     id: string,
     payload: TransitionPayload,

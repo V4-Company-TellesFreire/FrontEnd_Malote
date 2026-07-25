@@ -61,6 +61,7 @@ export function canPerformTransition(
   role: UserRole,
   fromStatus: ServiceOrderStatus,
   toStatus: ServiceOrderStatus,
+  isCreator: boolean = false
 ): boolean {
   // First check if transition is valid in the state machine
   const validTargets = getValidTransitions(fromStatus);
@@ -68,8 +69,8 @@ export function canPerformTransition(
 
   switch (role) {
     case 'vendedor':
-      // Vendedor can only: confirm receipt (→ Entregue na Loja or Entregue c/ Ressalva)
-      // and confirm client pickup (→ Entregue ao Cliente)
+      // If they are the creator, they have full control. Otherwise only receipt/pickup delivery steps.
+      if (isCreator) return true;
       return (
         toStatus === 'Entregue na Loja' ||
         toStatus === 'Entregue c/ Ressalva' ||
@@ -90,6 +91,13 @@ export function canPerformTransition(
 
     case 'admin':
       return true;
+
+    case 'motoboy':
+      // Motoboy can only: start route (Expedição → Em Rota) and deliver (Em Rota → Entregue na Loja)
+      return (
+        (fromStatus === 'Expedição' && toStatus === 'Em Rota') ||
+        (fromStatus === 'Em Rota' && toStatus === 'Entregue na Loja')
+      );
 
     default:
       return false;
@@ -134,6 +142,9 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'caveats',      label: 'Ressalvas Relatadas', path: '/caveats',            icon: 'alert-triangle', roles: ['laboratorio', 'admin'] },
   
   { id: 'admin',        label: 'Configurações',       path: '/admin',              icon: 'settings',       roles: ['admin'] },
+  
+  // Motoboy specific items
+  { id: 'delivery-panel', label: 'Painel do Motoboy',  path: '/delivery-panel',     icon: 'truck',          roles: ['motoboy', 'admin'] },
 ];
 
 export function getNavItemsForRole(role: UserRole): NavItem[] {

@@ -1,13 +1,16 @@
-import { Search } from 'lucide-react';
+import * as React from 'react';
 import { ALL_STORES, MALOTE_SHIFTS, URGENCY_LEVELS } from '../../lib/constants';
 import { canViewAllStores } from '../../lib/permissions';
 import { useAuthStore } from '../../store/authStore';
-import { Input } from '../ui/Input';
+import { useServiceOrders } from '../../features/os/hooks';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
+import { SearchableDropdown } from '../ui/SearchableDropdown';
 
 export interface KanbanFiltersData {
-  search: string;
+  osNumber: string;
+  client: string;
+  seller: string;
   malote: string;
   urgency: string;
   storeId: string;
@@ -24,6 +27,23 @@ export function KanbanFilters({ filters, onChange, onClear }: KanbanFiltersProps
   const userRole = user?.role || 'vendedor';
   const showStoreSelect = canViewAllStores(userRole);
 
+  const { data: orders } = useServiceOrders();
+
+  const osNumberOptions = React.useMemo(() => {
+    if (!orders) return [];
+    return Array.from(new Set(orders.map((o) => o.osNumber).filter(Boolean))).sort();
+  }, [orders]);
+
+  const clientOptions = React.useMemo(() => {
+    if (!orders) return [];
+    return Array.from(new Set(orders.map((o) => o.clientName).filter(Boolean))).sort();
+  }, [orders]);
+
+  const sellerOptions = React.useMemo(() => {
+    if (!orders) return [];
+    return Array.from(new Set(orders.map((o) => o.sellerName).filter(Boolean))).sort();
+  }, [orders]);
+
   const handleFieldChange = (field: keyof KanbanFiltersData, value: string) => {
     onChange({
       ...filters,
@@ -33,15 +53,39 @@ export function KanbanFilters({ filters, onChange, onClear }: KanbanFiltersProps
 
   return (
     <div className="flex flex-col md:flex-row gap-3 items-end p-4 rounded-xl border border-neutral-200 bg-white shadow-xs w-full">
-      {/* Search Input */}
-      <div className="flex-1 min-w-[200px] w-full">
-        <Input
-          label="Buscar serviço"
-          placeholder="Buscar por OS, cliente..."
-          value={filters.search}
-          onChange={(e) => handleFieldChange('search', e.target.value)}
-          className="pl-9"
-          leftIcon={<Search className="h-4 w-4 text-neutral-400" />}
+      {/* OS Number Dropdown */}
+      <div className="w-full md:w-36">
+        <SearchableDropdown
+          label="Nº da OS"
+          placeholder="Todas as OS"
+          searchPlaceholder="Buscar OS..."
+          options={osNumberOptions}
+          value={filters.osNumber}
+          onChange={(val) => handleFieldChange('osNumber', val)}
+        />
+      </div>
+
+      {/* Client Dropdown */}
+      <div className="flex-1 min-w-[150px] w-full">
+        <SearchableDropdown
+          label="Cliente"
+          placeholder="Todos os clientes"
+          searchPlaceholder="Buscar cliente..."
+          options={clientOptions}
+          value={filters.client}
+          onChange={(val) => handleFieldChange('client', val)}
+        />
+      </div>
+
+      {/* Seller Dropdown */}
+      <div className="w-full md:w-44">
+        <SearchableDropdown
+          label="Vendedor"
+          placeholder="Todos os vendedores"
+          searchPlaceholder="Buscar vendedor..."
+          options={sellerOptions}
+          value={filters.seller}
+          onChange={(val) => handleFieldChange('seller', val)}
         />
       </div>
 

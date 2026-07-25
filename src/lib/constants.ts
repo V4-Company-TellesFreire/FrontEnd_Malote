@@ -146,7 +146,7 @@ export type TimeAlertLevel = 'normal' | 'attention' | 'critical';
 
 // ─── User Roles ─────────────────────────────────────────────────────────────
 
-export const USER_ROLES = ['vendedor', 'gerente', 'laboratorio', 'admin'] as const;
+export const USER_ROLES = ['vendedor', 'gerente', 'laboratorio', 'admin', 'motoboy'] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
 export const ROLE_LABELS: Record<UserRole, string> = {
@@ -154,6 +154,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   gerente: 'Gerente de Loja',
   laboratorio: 'Laboratório',
   admin: 'Supervisor / Admin',
+  motoboy: 'Motoboy',
 };
 
 // ─── Lab Partners ───────────────────────────────────────────────────────────
