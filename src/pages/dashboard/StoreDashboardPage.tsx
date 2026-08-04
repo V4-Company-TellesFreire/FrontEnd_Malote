@@ -35,7 +35,7 @@ export function StoreDashboardPage({ isNetwork = false }: StoreDashboardPageProp
       'Montagem':    { count: 0, color: '#DC8C0A' },
       'Qualidade':   { count: 0, color: '#64748B' },
       'Triagem':     { count: 0, color: '#0891B2' },
-      'Expedição':   { count: 0, color: '#7C3AED' },
+      'Pronto para Expedição':   { count: 0, color: '#7C3AED' },
       'Em Rota':     { count: 0, color: '#0369A1' },
       'Entregue':    { count: 0, color: '#0D9F6F' },
     };
@@ -46,7 +46,7 @@ export function StoreDashboardPage({ isNetwork = false }: StoreDashboardPageProp
       'Montagem':               'Montagem',
       'Controle de Qualidade':  'Qualidade',
       'Separando':              'Triagem',
-      'Expedição':              'Expedição',
+      'Pronto para Expedição':  'Pronto para Expedição',
       'Em Rota':                'Em Rota',
       'Entregue na Loja':       'Entregue',
       'Entregue c/ Ressalva':   'Entregue',

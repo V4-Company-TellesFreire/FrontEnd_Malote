@@ -3,6 +3,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useServiceOrders, useTransitionStatus } from '../../features/os/hooks';
 import { Tabs, Button, Skeleton, EmptyState, ErrorState, useToast, SearchableDropdown } from '../../components/ui';
 import { KanbanColumn } from '../../components/kanban/KanbanColumn';
+import { CreateMaloteModal } from '../../components/kanban/CreateMaloteModal';
 import { ReceiptConfirmationModal } from '../../components/forms/ReceiptConfirmationModal';
 import { ClientPickupModal } from '../../components/forms/ClientPickupModal';
 import { Eye, PackageCheck, RotateCcw, PlusCircle, Layers, AlertTriangle, FlaskConical, BarChart2, Loader2 } from 'lucide-react';
@@ -10,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { useStoreMetrics, useNetworkMetrics } from '../../features/dashboard/hooks';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
-import { getValidTransitions, getPreviousStatus, type ServiceOrderStatus } from '../../lib/constants';
+import { getValidTransitions, getPreviousStatus, canTransitionTo, type ServiceOrderStatus } from '../../lib/constants';
 import { canPerformTransition } from '../../lib/permissions';
 import { useDragToScroll } from '../../hooks/useDragToScroll';
 
@@ -39,6 +40,9 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
   const [selectedOrderId, setSelectedOrderId] = React.useState<string | null>(null);
   const [receiptModalOpen, setReceiptModalOpen] = React.useState(false);
   const [pickupModalOpen, setPickupModalOpen] = React.useState(false);
+  const [maloteModalOpen, setMaloteModalOpen] = React.useState(false);
+  const [maloteTriggerOsId, setMaloteTriggerOsId] = React.useState<string | null>(null);
+  const [isMaloteSubmitting, setIsMaloteSubmitting] = React.useState(false);
 
   // Pre-filter seller initial check if vendedor
   React.useEffect(() => {
@@ -69,7 +73,7 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
       'Montagem': { count: 0, color: '#DC8C0A' },
       'Qualidade': { count: 0, color: '#64748B' },
       'Triagem': { count: 0, color: '#0891B2' },
-      'Expedição': { count: 0, color: '#7C3AED' },
+      'Pronto para Expedição': { count: 0, color: '#7C3AED' },
       'Em Rota': { count: 0, color: '#0369A1' },
       'Entregue': { count: 0, color: '#0D9F6F' },
     };
@@ -80,7 +84,7 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
       'Montagem': 'Montagem',
       'Controle de Qualidade': 'Qualidade',
       'Separando': 'Triagem',
-      'Expedição': 'Expedição',
+      'Pronto para Expedição': 'Pronto para Expedição',
       'Em Rota': 'Em Rota',
       'Entregue na Loja': 'Entregue',
       'Entregue c/ Ressalva': 'Entregue',
@@ -196,6 +200,14 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
       const nextStatuses = getValidTransitions(order.status);
       if (nextStatuses.length > 0) {
         const targetStatus = nextStatuses[0];
+
+        // Intercept transition to 'Pronto para Expedição' for vendedor role
+        if (order.status === 'Separando' && targetStatus === 'Pronto para Expedição' && user?.role === 'vendedor') {
+          setMaloteTriggerOsId(id);
+          setMaloteModalOpen(true);
+          return;
+        }
+
         const isCreator = order.createdBy === user?.id;
         if (!canPerformTransition(user?.role || 'vendedor', order.status, targetStatus, isCreator)) {
           toast.error('Você não tem permissão para mover esta ordem de serviço.');
@@ -242,6 +254,137 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
           }
         );
       }
+    }
+  };
+
+  const handleConfirmCreateMalote = async (selectedIds: string[], pouchCode: string) => {
+    setIsMaloteSubmitting(true);
+    try {
+      await Promise.all(
+        selectedIds.map((id) =>
+          transitionMutation.mutateAsync({
+            id,
+            payload: {
+              to: 'Pronto para Expedição',
+              pouchCode,
+            },
+          })
+        )
+      );
+      toast.success(`Malote ${pouchCode} criado com sucesso contendo ${selectedIds.length} OSs!`);
+      setMaloteModalOpen(false);
+      setMaloteTriggerOsId(null);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao criar o malote.');
+    } finally {
+      setIsMaloteSubmitting(false);
+    }
+  };
+
+  const handleDropCard = (id: string, targetStatus: ServiceOrderStatus) => {
+    const order = orders?.find((o) => o.id === id);
+    if (!order) return;
+
+    // Validate transition feasibility
+    if (!canTransitionTo(order.status, targetStatus)) {
+      toast.error('Transição de status inválida.');
+      return;
+    }
+
+    const isCreator = order.createdBy === user?.id;
+    if (!canPerformTransition(user?.role || 'vendedor', order.status, targetStatus, isCreator)) {
+      toast.error('Você não tem permissão para mover esta ordem de serviço.');
+      return;
+    }
+
+    // Intercept if moving to 'Pronto para Expedição' and user is a vendedor
+    if (order.status === 'Separando' && targetStatus === 'Pronto para Expedição' && user?.role === 'vendedor') {
+      setMaloteTriggerOsId(id);
+      setMaloteModalOpen(true);
+      return;
+    }
+
+    // Check special modal-based transitions
+    if (targetStatus === 'Entregue na Loja') {
+      setSelectedOrderId(id);
+      setReceiptModalOpen(true);
+      return;
+    }
+    if (targetStatus === 'Entregue ao Cliente') {
+      setSelectedOrderId(id);
+      setPickupModalOpen(true);
+      return;
+    }
+
+    transitionMutation.mutate(
+      {
+        id,
+        payload: { to: targetStatus },
+      },
+      {
+        onSuccess: () => {
+          toast.success('Status da OS atualizado com sucesso.');
+        },
+        onError: (err: any) => {
+          toast.error(err.message || 'Falha ao atualizar status da OS.');
+        },
+      }
+    );
+  };
+
+  const handleDropPouch = async (pouchCode: string, targetStatus: ServiceOrderStatus) => {
+    const pouchOrders = orders?.filter(o => o.pouchCode === pouchCode) || [];
+    if (pouchOrders.length === 0) return;
+
+    const firstOrder = pouchOrders[0];
+    if (!canTransitionTo(firstOrder.status, targetStatus)) {
+      toast.error('Transição de status inválida para este malote.');
+      return;
+    }
+
+    // Role check (vendedor)
+    if (targetStatus === 'Pronto para Expedição' && user?.role === 'vendedor') {
+      toast.error('O malote já está pronto para expedição.');
+      return;
+    }
+
+    try {
+      await Promise.all(pouchOrders.map(o => 
+        transitionMutation.mutateAsync({
+          id: o.id,
+          payload: { to: targetStatus, pouchCode }
+        })
+      ));
+      toast.success(`Malote ${pouchCode} movido com sucesso para ${targetStatus}!`);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao mover malote.');
+    }
+  };
+
+  const handleMovePouch = async (pouchCode: string, direction: -1 | 1) => {
+    const pouchOrders = orders?.filter(o => o.pouchCode === pouchCode) || [];
+    if (pouchOrders.length === 0) return;
+
+    const firstOrder = pouchOrders[0];
+    const targetStatus = direction === 1 
+      ? getValidTransitions(firstOrder.status)[0]
+      : getPreviousStatus(firstOrder.status);
+
+    if (!targetStatus) return;
+
+    try {
+      await Promise.all(pouchOrders.map(o => 
+        transitionMutation.mutateAsync({
+          id: o.id,
+          payload: { to: targetStatus, pouchCode }
+        })
+      ));
+      toast.success(`Malote ${pouchCode} movido para ${targetStatus}!`);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao mover malote.');
     }
   };
 
@@ -549,6 +692,7 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
                   onOpenReceipt={handleOpenReceiptModal}
                   onOpenPickup={handleOpenPickupModal}
                   onOpenCaveat={handleOpenCaveatModal}
+                  onDropCard={handleDropCard}
                 />
                 <KanbanColumn
                   status="Envio Laboratório"
@@ -557,6 +701,7 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
                   onOpenReceipt={handleOpenReceiptModal}
                   onOpenPickup={handleOpenPickupModal}
                   onOpenCaveat={handleOpenCaveatModal}
+                  onDropCard={handleDropCard}
                 />
                 <KanbanColumn
                   status="Montagem"
@@ -565,6 +710,7 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
                   onOpenReceipt={handleOpenReceiptModal}
                   onOpenPickup={handleOpenPickupModal}
                   onOpenCaveat={handleOpenCaveatModal}
+                  onDropCard={handleDropCard}
                 />
                 <KanbanColumn
                   status="Controle de Qualidade"
@@ -573,6 +719,7 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
                   onOpenReceipt={handleOpenReceiptModal}
                   onOpenPickup={handleOpenPickupModal}
                   onOpenCaveat={handleOpenCaveatModal}
+                  onDropCard={handleDropCard}
                 />
                 <KanbanColumn
                   status="Separando"
@@ -581,14 +728,23 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
                   onOpenReceipt={handleOpenReceiptModal}
                   onOpenPickup={handleOpenPickupModal}
                   onOpenCaveat={handleOpenCaveatModal}
+                  onDropCard={handleDropCard}
+                  onDropPouch={handleDropPouch}
                 />
                 <KanbanColumn
-                  status="Expedição"
-                  orders={activeOrders.filter((o) => o.status === 'Expedição')}
+                  status="Pronto para Expedição"
+                  orders={activeOrders.filter((o) => o.status === 'Pronto para Expedição')}
                   onMoveCard={handleMoveCard}
                   onOpenReceipt={handleOpenReceiptModal}
                   onOpenPickup={handleOpenPickupModal}
                   onOpenCaveat={handleOpenCaveatModal}
+                  onDropCard={handleDropCard}
+                  onDropPouch={handleDropPouch}
+                  onMovePouch={handleMovePouch}
+                  onCreateMalote={() => {
+                    setMaloteTriggerOsId(null);
+                    setMaloteModalOpen(true);
+                  }}
                 />
                 <KanbanColumn
                   status="Em Rota"
@@ -597,6 +753,8 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
                   onOpenReceipt={handleOpenReceiptModal}
                   onOpenPickup={handleOpenPickupModal}
                   onOpenCaveat={handleOpenCaveatModal}
+                  onDropCard={handleDropCard}
+                  onDropPouch={handleDropPouch}
                 />
               </div>
             )}
@@ -692,6 +850,19 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
           orderId={selectedOrderId}
         />
       )}
+
+      {/* Create Pouch (Malote) Modal */}
+      <CreateMaloteModal
+        isOpen={maloteModalOpen}
+        onClose={() => {
+          setMaloteModalOpen(false);
+          setMaloteTriggerOsId(null);
+        }}
+        orders={orders || []}
+        initialSelectedOsId={maloteTriggerOsId}
+        onConfirm={handleConfirmCreateMalote}
+        isSubmitting={isMaloteSubmitting}
+      />
     </div>
   );
 }

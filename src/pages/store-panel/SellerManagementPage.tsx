@@ -251,11 +251,8 @@ export function SellerManagementPage() {
       <EmptyState
         title="Erro ao carregar dados"
         description="Não foi possível carregar a lista de vendedores. Tente recarregar a página."
-        action={
-          <Button onClick={() => refetch()} variant="primary">
-            Tentar Novamente
-          </Button>
-        }
+        actionText="Tentar Novamente"
+        onAction={() => refetch()}
       />
     );
   }
@@ -380,7 +377,7 @@ export function SellerManagementPage() {
                       </span>
                     </td>
                     <td className="p-3">
-                      <Badge variant={u.isActive ? 'success' : 'neutral'} className="text-[10px] font-bold px-2 py-0.5">
+                      <Badge variant={u.isActive ? 'success' : 'default'} className="text-[10px] font-bold px-2 py-0.5">
                         {u.isActive ? 'Ativo' : 'Inativo'}
                       </Badge>
                     </td>
@@ -431,7 +428,7 @@ export function SellerManagementPage() {
                     <h4 className="font-bold text-neutral-850 text-sm">{u.name}</h4>
                     <span className="text-[9px] text-neutral-400">ID: {u.id}</span>
                   </div>
-                  <Badge variant={u.isActive ? 'success' : 'neutral'} className="text-[9px] font-bold px-2">
+                  <Badge variant={u.isActive ? 'success' : 'default'} className="text-[9px] font-bold px-2">
                     {u.isActive ? 'Ativo' : 'Inativo'}
                   </Badge>
                 </div>

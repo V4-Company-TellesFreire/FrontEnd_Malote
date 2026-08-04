@@ -86,16 +86,16 @@ export function canPerformTransition(
       );
 
     case 'laboratorio':
-      // Lab: full pipeline control (Montagem → Expedição stages)
+      // Lab: full pipeline control (Montagem → Pronto para Expedição stages)
       return true;
 
     case 'admin':
       return true;
 
     case 'motoboy':
-      // Motoboy can only: start route (Expedição → Em Rota) and deliver (Em Rota → Entregue na Loja)
+      // Motoboy can only: start route (Pronto para Expedição → Em Rota) and deliver (Em Rota → Entregue na Loja)
       return (
-        (fromStatus === 'Expedição' && toStatus === 'Em Rota') ||
+        (fromStatus === 'Pronto para Expedição' && toStatus === 'Em Rota') ||
         (fromStatus === 'Em Rota' && toStatus === 'Entregue na Loja')
       );
 

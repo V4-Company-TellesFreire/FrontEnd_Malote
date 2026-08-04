@@ -9,8 +9,8 @@ import type {
 import { getMaloteForStore } from '../../lib/constants';
 import { uid, generateOSNumber } from '../../lib/utils';
 
-const STORAGE_KEY = 'oc_v7_service_orders';
-const NOTIF_STORAGE_KEY = 'oc_v7_notifications';
+const STORAGE_KEY = 'oc_v9_service_orders';
+const NOTIF_STORAGE_KEY = 'oc_v9_notifications';
 
 // Generates a mock list of service orders
 function getInitialSeedData(): ServiceOrder[] {
@@ -104,7 +104,7 @@ function getInitialSeedData(): ServiceOrder[] {
       storeName: 'Centro 1',
       storeId: 'centro-1',
       malote: 'Tarde',
-      status: 'Expedição',
+      status: 'Separando',
       sellerName: 'Vendedora Julia',
       entryDate: new Date(now.getTime() - 25 * 3600 * 1000).toISOString(),
       recipeType: 'Receita médica',
@@ -144,7 +144,7 @@ function getInitialSeedData(): ServiceOrder[] {
       storeName: 'Gávea',
       storeId: 'gavea',
       malote: 'Noite',
-      status: 'Em Rota',
+      status: 'Separando',
       sellerName: 'Vendedora Clara',
       entryDate: new Date(now.getTime() - 5 * 3600 * 1000).toISOString(),
       recipeType: 'Receita médica',
@@ -247,7 +247,7 @@ function getInitialSeedData(): ServiceOrder[] {
       storeName: 'Tijuca 1',
       storeId: 'tijuca-1',
       malote: 'Tarde',
-      status: 'Em Rota',
+      status: 'Separando',
       sellerName: 'Vendedor Pedro',
       entryDate: new Date(now.getTime() - 10 * 3600 * 1000).toISOString(),
       recipeType: 'Receita médica',
@@ -479,7 +479,7 @@ function getInitialSeedData(): ServiceOrder[] {
       storeName: 'Gávea',
       storeId: 'gavea',
       malote: 'Noite',
-      status: 'Expedição',
+      status: 'Separando',
       sellerName: 'Vendedora Clara',
       entryDate: new Date(now.getTime() - 15 * 3600 * 1000).toISOString(),
       recipeType: 'Receita médica',
@@ -715,7 +715,7 @@ function getInitialSeedData(): ServiceOrder[] {
       storeName: 'Norte 1',
       storeId: 'norte-1',
       malote: 'Manhã',
-      status: 'Em Rota',
+      status: 'Separando',
       sellerName: 'Carlos Vendedor',
       entryDate: new Date(now.getTime() - 5 * 3600 * 1000).toISOString(),
       recipeType: 'Receita médica',
@@ -887,8 +887,7 @@ export class ServiceOrdersMockApi implements IServiceOrdersApi {
     const currentUser = getCurrentUserFromStorage();
     if (currentUser && currentUser.role === 'vendedor') {
       orders = orders.filter(o => 
-        o.storeId === currentUser.storeId && 
-        o.createdByRole === 'vendedor'
+        o.storeId === currentUser.storeId
       );
     }
 
@@ -1091,12 +1090,34 @@ export class ServiceOrdersMockApi implements IServiceOrdersApi {
     const fromStatus = order.status;
     const toStatus = payload.to;
 
+    // Determine user role for business logic checks
+    const userRole = (() => {
+      const rawUsers = localStorage.getItem('oticas_carol_users');
+      if (rawUsers) {
+        try {
+          const users = JSON.parse(rawUsers);
+          const matchedUser = Object.values(users).find((u: any) => u.id === userId);
+          if (matchedUser) return (matchedUser as any).role;
+        } catch {}
+      }
+      return 'vendedor';
+    })();
+
+    // Block moving to 'Pronto para Expedição' without pouchCode for vendedor and laboratorio roles
+    if (toStatus === 'Pronto para Expedição' && !payload.pouchCode && (userRole === 'laboratorio' || userRole === 'vendedor')) {
+      throw { code: 'POUCH_REQUIRED', message: 'Não é permitido mover uma OS para Pronto para Expedição sem vinculá-la a um malote.' };
+    }
+
     // Check custom business logic transitions if needed
     order.status = toStatus;
     order.statusChangedAt = new Date().toISOString();
 
     if (payload.mountingOrigin) {
       order.mountingOrigin = payload.mountingOrigin;
+    }
+
+    if (payload.pouchCode) {
+      order.pouchCode = payload.pouchCode;
     }
 
     // Handle confirming receipt (Entregue na Loja or Entregue c/ Ressalva)
@@ -1126,7 +1147,7 @@ export class ServiceOrdersMockApi implements IServiceOrdersApi {
         storeName: order.storeName,
         malote: order.malote,
         timestamp: new Date().toISOString(),
-        observation: order.reception.observation,
+        observation: order.reception.observation || '',
         photoUrl: order.reception.photoUrl,
         receivedBy: userName,
         withinDeadline,
@@ -1146,6 +1167,10 @@ export class ServiceOrdersMockApi implements IServiceOrdersApi {
     }
 
     // Audit log update
+    const details = payload.pouchCode
+      ? `OS vinculada ao Malote ${payload.pouchCode} e movida para Pronto para Expedição.`
+      : (payload.reason ? `Movido com justificativa: ${payload.reason}` : `Operação realizada com sucesso.`);
+
     const auditEntry: AuditLogEntry = {
       id: uid(),
       timestamp: new Date().toISOString(),
@@ -1154,7 +1179,7 @@ export class ServiceOrdersMockApi implements IServiceOrdersApi {
       action: 'Alteração de Status',
       fromStatus,
       toStatus,
-      details: payload.reason ? `Movido com justificativa: ${payload.reason}` : `Operação realizada com sucesso.`,
+      details,
     };
     order.auditLog.push(auditEntry);
 

@@ -31,11 +31,11 @@ export class DashboardMockApi implements IDashboardApi {
       }
       if (o.externalLab) {
         externalLabCount++;
-        if (o.status === 'Controle de Qualidade' || o.status === 'Separando' || o.status === 'Expedição' || o.status === 'Em Rota' || o.status === 'Entregue na Loja' || o.status === 'Entregue ao Cliente') {
+        if (o.status === 'Controle de Qualidade' || o.status === 'Separando' || o.status === 'Pronto para Expedição' || o.status === 'Em Rota' || o.status === 'Entregue na Loja' || o.status === 'Entregue ao Cliente') {
           mountingsExternal++;
         }
       } else {
-        if (o.status === 'Controle de Qualidade' || o.status === 'Separando' || o.status === 'Expedição' || o.status === 'Em Rota' || o.status === 'Entregue na Loja' || o.status === 'Entregue ao Cliente') {
+        if (o.status === 'Controle de Qualidade' || o.status === 'Separando' || o.status === 'Pronto para Expedição' || o.status === 'Em Rota' || o.status === 'Entregue na Loja' || o.status === 'Entregue ao Cliente') {
           mountingsKatz++;
         }
       }
@@ -53,7 +53,7 @@ export class DashboardMockApi implements IDashboardApi {
       'Montagem': 180,
       'Controle de Qualidade': 30,
       'Separando': 20,
-      'Expedição': 60,
+      'Pronto para Expedição': 60,
       'Em Rota': 120,
       'Entregue na Loja': 1440, // 24 hours
       'Entregue c/ Ressalva': 2880, // 48 hours

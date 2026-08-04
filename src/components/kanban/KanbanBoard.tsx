@@ -9,6 +9,10 @@ export interface KanbanBoardProps {
   onOpenReceipt: (id: string) => void;
   onOpenPickup: (id: string) => void;
   onOpenCaveat: (id: string) => void;
+  onDropCard?: (id: string, targetStatus: ServiceOrderStatus) => void;
+  onDropPouch?: (pouchCode: string, targetStatus: ServiceOrderStatus) => void;
+  onMovePouch?: (pouchCode: string, direction: -1 | 1) => void;
+  onCreateMalote?: () => void;
   statuses?: readonly ServiceOrderStatus[];
 }
 
@@ -18,6 +22,10 @@ export function KanbanBoard({
   onOpenReceipt,
   onOpenPickup,
   onOpenCaveat,
+  onDropCard,
+  onDropPouch,
+  onMovePouch,
+  onCreateMalote,
   statuses,
 }: KanbanBoardProps) {
   const activeStatuses = statuses || SERVICE_ORDER_STATUSES;
@@ -41,6 +49,10 @@ export function KanbanBoard({
               onOpenReceipt={onOpenReceipt}
               onOpenPickup={onOpenPickup}
               onOpenCaveat={onOpenCaveat}
+              onDropCard={onDropCard}
+              onDropPouch={onDropPouch}
+              onMovePouch={onMovePouch}
+              onCreateMalote={onCreateMalote}
             />
           );
         })}

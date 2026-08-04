@@ -47,31 +47,33 @@ export interface Prescription {
 }
 
 export interface ReceptionData {
-  ok: boolean;
+  ok?: boolean;
   ts: string;
-  observation: string;
+  observation?: string;
   photoUrl: string | null;
-  confirmedBy: string;
-  receivedBy: string;
-  withinDeadline: boolean | null;
-  deadlineDate: string | null;
+  confirmedBy?: string;
+  receivedBy?: string;
+  withinDeadline?: boolean | null;
+  deadlineDate?: string | null;
+  recipientName?: string;
 }
 
 export interface ClientPickupData {
   pickedUpBy: string;       // Client name or person picking up
-  deliveredBy: string;      // Employee who handed over
+  deliveredBy?: string;      // Employee who handed over
   ts: string;
-  observation: string;
+  observation?: string;
+  relationship?: string;
 }
 
 export interface RectificationData {
-  id: string;
-  parentOsId: string;
-  childOsId: string;
+  id?: string;
+  parentOsId?: string;
+  childOsId?: string;
   reason: string;
   action: string;
-  createdAt: string;
-  createdBy: string;
+  createdAt?: string;
+  createdBy?: string;
 }
 
 export interface ServiceOrder {
@@ -120,6 +122,7 @@ export interface ServiceOrder {
   stoppedReason: string | null;
   createdBy?: string;         // ID of the user who created this OS
   createdByRole?: string;     // Role of the user who created this OS
+  pouchCode?: string | null;  // Physical pouch code
   auditLog: AuditLogEntry[];
 }
 
@@ -243,4 +246,5 @@ export interface TransitionPayload {
   urgency?: UrgencyLevel;
   mountingOrigin?: MountingOrigin;
   receivedBy?: string;
+  pouchCode?: string;
 }

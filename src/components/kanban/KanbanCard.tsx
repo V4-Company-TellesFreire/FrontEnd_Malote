@@ -13,6 +13,7 @@ export interface KanbanCardProps {
   onOpenReceipt: (id: string) => void;
   onOpenPickup: (id: string) => void;
   onOpenCaveat: (id: string) => void;
+  inPouch?: boolean;
 }
 
 export function KanbanCard({
@@ -21,6 +22,7 @@ export function KanbanCard({
   onOpenReceipt,
   onOpenPickup,
   onOpenCaveat,
+  inPouch = false,
 }: KanbanCardProps) {
   const user = useAuthStore((s) => s.user);
   const selectedStoreId = useAuthStore((s) => s.selectedStoreId);
@@ -47,7 +49,7 @@ export function KanbanCard({
   const prevStatus = getPreviousStatus(order.status);
 
   // Vendedor/Gerente role check-in or client delivery prompts instead of standard button if in-stage
-  const isPendingReceipt = (order.status === 'Expedição' || order.status === 'Em Rota') && !order.reception;
+  const isPendingReceipt = (order.status === 'Pronto para Expedição' || order.status === 'Em Rota') && !order.reception;
   const isPendingPickup = (order.status === 'Entregue na Loja' || order.status === 'Entregue c/ Ressalva') && !order.clientPickup;
 
   // Next standard navigation allows check
@@ -63,7 +65,11 @@ export function KanbanCard({
 
   return (
     <div
-      className={`kanban-card flex flex-col gap-2.5 p-3 rounded-lg border border-neutral-300 text-xs transition-all duration-150 ${bgClass} ${urgencyBorderClasses[order.urgency]}`}
+      draggable={true}
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/plain', order.id);
+      }}
+      className={`kanban-card cursor-grab active:cursor-grabbing flex flex-col gap-2.5 p-3 rounded-lg border border-neutral-300 text-xs transition-all duration-150 ${bgClass} ${urgencyBorderClasses[order.urgency]}`}
     >
       {/* Header OS info */}
       <div className="flex flex-wrap items-center justify-between gap-1 text-[9px] text-neutral-400 font-mono">
@@ -194,7 +200,7 @@ export function KanbanCard({
       )}
 
       {/* Navigation Buttons for operational users */}
-      {!isPendingReceipt && !isPendingPickup && (
+      {!isPendingReceipt && !isPendingPickup && !inPouch && (
         <div className="flex items-center justify-between gap-1.5 mt-1 pt-1.5 border-t border-neutral-150">
           <button
             onClick={() => onMoveCard(order.id, -1)}

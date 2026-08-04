@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { useServiceOrders, useTransitionStatus, useNotifications, useSendWhatsApp } from '../../features/os/hooks';
+import { useAuthStore } from '../../store/authStore';
 import { Tabs, Button, Badge, Skeleton, EmptyState, ErrorState, StatusBadge, Modal, Card, CardContent, useToast } from '../../components/ui';
 import { KanbanBoard } from '../../components/kanban/KanbanBoard';
 import { KanbanFilters } from '../../components/kanban/KanbanFilters';
+import { CreateMaloteModal } from '../../components/kanban/CreateMaloteModal';
 import type { KanbanFiltersData } from '../../components/kanban/KanbanFilters';
 import { FlaskConical, Bell, AlertTriangle, Truck, ListFilter, Kanban, CheckSquare, ChevronRight } from 'lucide-react';
-import { SERVICE_ORDER_STATUSES } from '../../lib/constants';
+import { SERVICE_ORDER_STATUSES, type ServiceOrderStatus } from '../../lib/constants';
 import { elapsed, formatDateTime } from '../../lib/utils';
 import { ReceiptConfirmationModal } from '../../components/forms/ReceiptConfirmationModal';
 import { ClientPickupModal } from '../../components/forms/ClientPickupModal';
@@ -20,7 +22,7 @@ const PRODUCTION_STATUSES = [
   'Montagem',
   'Controle de Qualidade',
   'Separando',
-  'Expedição',
+  'Pronto para Expedição',
   'Em Rota',
 ] as const;
 
@@ -50,6 +52,9 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
     storeId: '',
   });
 
+  // Auth state
+  const user = useAuthStore((s) => s.user);
+
   // Modal control
   const [dispatchModalOpen, setDispatchModalOpen] = React.useState(false);
   const [dispatchedOrdersCount, setDispatchedOrdersCount] = React.useState(0);
@@ -60,6 +65,9 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
   const [receiptOpen, setReceiptOpen] = React.useState(false);
   const [pickupOpen, setPickupOpen] = React.useState(false);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [maloteModalOpen, setMaloteModalOpen] = React.useState(false);
+  const [maloteTriggerOsId, setMaloteTriggerOsId] = React.useState<string | null>(null);
+  const [isMaloteSubmitting, setIsMaloteSubmitting] = React.useState(false);
 
   // Queries
   const { data: orders, isLoading, isError, error, refetch } = useServiceOrders();
@@ -105,7 +113,7 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
       productionTotal: filteredOrders.filter((o) => PRODUCTION_STATUSES.includes(o.status as any)).length,
       deliveriesTotal: filteredOrders.filter((o) => DELIVERY_STATUSES.includes(o.status as any)).length,
       mounting: filteredOrders.filter((o) => o.status === 'Montagem' || o.status === 'Controle de Qualidade').length,
-      transit: filteredOrders.filter((o) => o.status === 'Expedição' || o.status === 'Em Rota').length,
+      transit: filteredOrders.filter((o) => o.status === 'Pronto para Expedição' || o.status === 'Em Rota').length,
       urgent: filteredOrders.filter((o) => o.urgency > 0).length,
     };
   }, [filteredOrders]);
@@ -120,6 +128,13 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
 
     if (nextIndex < 0 || nextIndex >= SERVICE_ORDER_STATUSES.length) return;
     const targetStatus = SERVICE_ORDER_STATUSES[nextIndex];
+
+    // Intercept transition from Separando to Pronto para Expedição for laboratorio role
+    if (order.status === 'Separando' && targetStatus === 'Pronto para Expedição' && user?.role === 'laboratorio') {
+      setMaloteTriggerOsId(id);
+      setMaloteModalOpen(true);
+      return;
+    }
 
     // If nextStatus is Montagem, prompt for katz vs external choice (simulate by setting default katz for demo, or prompts)
     const payload: any = { to: targetStatus };
@@ -140,12 +155,132 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
     );
   };
 
+  const handleConfirmCreateMalote = async (selectedIds: string[], pouchCode: string) => {
+    setIsMaloteSubmitting(true);
+    try {
+      await Promise.all(
+        selectedIds.map((id) =>
+          transitionMutation.mutateAsync({
+            id,
+            payload: {
+              to: 'Pronto para Expedição',
+              pouchCode,
+            },
+          })
+        )
+      );
+      toast.success(`Malote ${pouchCode} criado com sucesso contendo ${selectedIds.length} OSs!`);
+      setMaloteModalOpen(false);
+      setMaloteTriggerOsId(null);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao criar o malote.');
+    } finally {
+      setIsMaloteSubmitting(false);
+    }
+  };
+
+  const handleDropCard = (id: string, targetStatus: ServiceOrderStatus) => {
+    const order = orders?.find((o) => o.id === id);
+    if (!order) return;
+
+    if (order.status === targetStatus) return;
+
+    // Validate sequential progression in Lab pipeline
+    const currentIndex = SERVICE_ORDER_STATUSES.indexOf(order.status);
+    const targetIndex = SERVICE_ORDER_STATUSES.indexOf(targetStatus);
+
+    if (Math.abs(targetIndex - currentIndex) !== 1) {
+      toast.error('O fluxo de produção deve ser seguido etapa por etapa.');
+      return;
+    }
+
+    // Intercept transition from Separando to Pronto para Expedição for laboratorio role
+    if (order.status === 'Separando' && targetStatus === 'Pronto para Expedição' && user?.role === 'laboratorio') {
+      setMaloteTriggerOsId(id);
+      setMaloteModalOpen(true);
+      return;
+    }
+
+    const payload: any = { to: targetStatus };
+    if (targetStatus === 'Montagem') {
+      payload.mountingOrigin = 'katz';
+    }
+
+    transitionMutation.mutate(
+      { id, payload },
+      {
+        onSuccess: () => {
+          toast.success(`Ordem movida para ${targetStatus}`);
+        },
+        onError: (err: any) => {
+          toast.error(err.message || 'Falha ao mover ordem.');
+        },
+      }
+    );
+  };
+
+  const handleDropPouch = async (pouchCode: string, targetStatus: ServiceOrderStatus) => {
+    const pouchOrders = orders?.filter(o => o.pouchCode === pouchCode) || [];
+    if (pouchOrders.length === 0) return;
+
+    const firstOrder = pouchOrders[0];
+    if (firstOrder.status === targetStatus) return;
+
+    // Validate sequential progression in Lab pipeline
+    const currentIndex = SERVICE_ORDER_STATUSES.indexOf(firstOrder.status);
+    const targetIndex = SERVICE_ORDER_STATUSES.indexOf(targetStatus);
+
+    if (Math.abs(targetIndex - currentIndex) !== 1) {
+      toast.error('O fluxo de produção deve ser seguido etapa por etapa.');
+      return;
+    }
+
+    try {
+      await Promise.all(pouchOrders.map(o => 
+        transitionMutation.mutateAsync({
+          id: o.id,
+          payload: { to: targetStatus, pouchCode }
+        })
+      ));
+      toast.success(`Malote ${pouchCode} movido para ${targetStatus}!`);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao mover malote.');
+    }
+  };
+
+  const handleMovePouch = async (pouchCode: string, direction: -1 | 1) => {
+    const pouchOrders = orders?.filter(o => o.pouchCode === pouchCode) || [];
+    if (pouchOrders.length === 0) return;
+
+    const firstOrder = pouchOrders[0];
+    const currentIndex = SERVICE_ORDER_STATUSES.indexOf(firstOrder.status);
+    const nextIndex = currentIndex + direction;
+
+    if (nextIndex < 0 || nextIndex >= SERVICE_ORDER_STATUSES.length) return;
+    const targetStatus = SERVICE_ORDER_STATUSES[nextIndex];
+
+    try {
+      await Promise.all(pouchOrders.map(o => 
+        transitionMutation.mutateAsync({
+          id: o.id,
+          payload: { to: targetStatus, pouchCode }
+        })
+      ));
+      toast.success(`Malote ${pouchCode} movido para ${targetStatus}!`);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao mover malote.');
+    }
+  };
+
   // Dispatch motoboy action (Seguindo com Renato)
-  // Shifts all "Expedição" statuses to "Em Rota"
+  // Shifts all "Pronto para Expedição" statuses to "Em Rota"
   const handleMotoboyDispatch = () => {
-    const readyOrders = orders?.filter((o) => o.status === 'Expedição') || [];
+    const readyOrders = orders?.filter((o) => o.status === 'Pronto para Expedição') || [];
     if (readyOrders.length === 0) {
-      toast.warning('Nenhum serviço pronto em Expedição para despachar.');
+      toast.warning('Nenhum serviço pronto em Pronto para Expedição para despachar.');
       return;
     }
 
@@ -224,7 +359,7 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
           <div className="flex flex-col gap-0.5">
             <span className="text-xs font-bold text-neutral-800">Despacho de Malote Rápido</span>
             <span className="text-[10px] text-neutral-500">
-              Despachar todas as ordens com status "Expedição" via Motoboy Renato
+              Despachar todas as ordens com status "Pronto para Expedição" via Motoboy Renato
             </span>
           </div>
         </div>
@@ -245,7 +380,7 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
       {/* Monitor dashboard display */}
       {(activeTab === 'lab' || activeTab === 'deliveries') && (() => {
         const activeStatuses = activeTab === 'lab' ? PRODUCTION_STATUSES : DELIVERY_STATUSES;
-        const tabOrders = filteredOrders.filter(o => activeStatuses.includes(o.status as any));
+        const tabOrders = filteredOrders.filter(o => (activeStatuses as readonly string[]).includes(o.status));
         const activeUrgentCount = tabOrders.filter(o => o.urgency > 0).length;
 
         return (
@@ -274,7 +409,7 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
                   <Card className="border-neutral-200">
                     <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                       <span className="text-2xl font-black text-accent font-mono">{stats.transit}</span>
-                      <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mt-1">Expedição / Em rota</span>
+                      <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mt-1">Pronto para Expedição / Em rota</span>
                     </CardContent>
                   </Card>
                 </>
@@ -351,6 +486,13 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
                 onOpenReceipt={handleOpenReceipt}
                 onOpenPickup={handleOpenPickup}
                 onOpenCaveat={handleOpenCaveat}
+                onDropCard={handleDropCard}
+                onDropPouch={handleDropPouch}
+                onMovePouch={handleMovePouch}
+                onCreateMalote={() => {
+                  setMaloteTriggerOsId(null);
+                  setMaloteModalOpen(true);
+                }}
               />
             ) : (
               /* Table list layouts */
@@ -579,6 +721,19 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
           </div>
         </Modal>
       )}
+
+      {/* Create Pouch (Malote) Modal */}
+      <CreateMaloteModal
+        isOpen={maloteModalOpen}
+        onClose={() => {
+          setMaloteModalOpen(false);
+          setMaloteTriggerOsId(null);
+        }}
+        orders={orders || []}
+        initialSelectedOsId={maloteTriggerOsId}
+        onConfirm={handleConfirmCreateMalote}
+        isSubmitting={isMaloteSubmitting}
+      />
     </div>
   );
 }

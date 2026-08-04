@@ -88,7 +88,7 @@ export function SearchableDropdown({
               placeholder={searchPlaceholder}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-8.5 w-full rounded-md border border-neutral-250 bg-neutral-50 pl-8.5 pr-3 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-brand focus:bg-white transition-all"
+              className="h-8 w-full rounded-md border border-neutral-250 bg-neutral-50 pl-8 pr-3 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-brand focus:bg-white transition-all"
               autoFocus
             />
           </div>
