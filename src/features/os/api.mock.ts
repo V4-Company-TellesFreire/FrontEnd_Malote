@@ -1090,7 +1090,6 @@ export class ServiceOrdersMockApi implements IServiceOrdersApi {
     const fromStatus = order.status;
     const toStatus = payload.to;
 
-    // Determine user role for business logic checks
     const userRole = (() => {
       const rawUsers = localStorage.getItem('oticas_carol_users');
       if (rawUsers) {
@@ -1103,12 +1102,10 @@ export class ServiceOrdersMockApi implements IServiceOrdersApi {
       return 'vendedor';
     })();
 
-    // Block moving to 'Pronto para Expedição' without pouchCode for vendedor and laboratorio roles
     if (toStatus === 'Pronto para Expedição' && !payload.pouchCode && (userRole === 'laboratorio' || userRole === 'vendedor')) {
       throw { code: 'POUCH_REQUIRED', message: 'Não é permitido mover uma OS para Pronto para Expedição sem vinculá-la a um malote.' };
     }
 
-    // Check custom business logic transitions if needed
     order.status = toStatus;
     order.statusChangedAt = new Date().toISOString();
 

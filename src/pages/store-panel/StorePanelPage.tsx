@@ -298,7 +298,6 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
       return;
     }
 
-    // Intercept if moving to 'Pronto para Expedição' and user is a vendedor
     if (order.status === 'Separando' && targetStatus === 'Pronto para Expedição' && user?.role === 'vendedor') {
       setMaloteTriggerOsId(id);
       setMaloteModalOpen(true);
@@ -343,7 +342,6 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
       return;
     }
 
-    // Role check (vendedor)
     if (targetStatus === 'Pronto para Expedição' && user?.role === 'vendedor') {
       toast.error('O malote já está pronto para expedição.');
       return;

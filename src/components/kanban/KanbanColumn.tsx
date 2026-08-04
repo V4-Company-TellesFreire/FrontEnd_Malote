@@ -35,7 +35,6 @@ export function KanbanColumn({
 }: KanbanColumnProps) {
   const meta = STATUS_META[status];
   
-  // State to track expanded pouches
   const [expandedPouches, setExpandedPouches] = React.useState<Record<string, boolean>>({});
 
   const togglePouchExpand = (pouchCode: string) => {
@@ -45,10 +44,8 @@ export function KanbanColumn({
     }));
   };
 
-  // Sort by urgency level first (2: Super Urgente, 1: Urgente, 0: Normal)
   const sortedOrders = [...orders].sort((a, b) => b.urgency - a.urgency);
 
-  // Group orders by pouchCode if status is 'Pronto para Expedição'
   const groupedOrders = React.useMemo(() => {
     if (status !== 'Pronto para Expedição') return null;
 
@@ -84,7 +81,6 @@ export function KanbanColumn({
       }}
       className={cn("flex flex-col w-80 shrink-0 h-fit rounded-xl border border-neutral-200 bg-neutral-50 shadow-xs", className)}
     >
-      {/* Column Header */}
       <div className="flex items-center justify-between p-3 bg-white border-b border-neutral-200">
         <div className="flex items-center gap-2">
           <span 
@@ -100,7 +96,6 @@ export function KanbanColumn({
         </span>
       </div>
 
-      {/* Create Malote Button */}
       {status === 'Pronto para Expedição' && onCreateMalote && (
         <div className="px-2 pt-2 pb-1">
           <button
@@ -112,11 +107,9 @@ export function KanbanColumn({
         </div>
       )}
 
-      {/* Cards Area */}
       <div className="p-2 flex flex-col gap-2 max-h-[70vh] overflow-y-auto pr-1">
         {status === 'Pronto para Expedição' && groupedOrders ? (
           <>
-            {/* Grouped Pouches */}
             {Object.entries(groupedOrders.groups).map(([pouchCode, pouchOrders]) => {
               const sortedPouchOrders = [...pouchOrders].sort((a, b) => b.urgency - a.urgency);
               const isExpanded = !!expandedPouches[pouchCode];
@@ -130,7 +123,6 @@ export function KanbanColumn({
                   }}
                   className="flex flex-col gap-2 p-2.5 rounded-lg border border-brand-300 bg-brand-50/15 shadow-xs transition-all hover:bg-brand-50/25"
                 >
-                  {/* Pouch Header */}
                   <div className="flex items-center justify-between pb-1.5 border-b border-brand-200">
                     <div 
                       onClick={() => togglePouchExpand(pouchCode)}
@@ -153,7 +145,6 @@ export function KanbanColumn({
                         {pouchOrders.length} {pouchOrders.length === 1 ? 'OS' : 'OSs'}
                       </span>
                       
-                      {/* Pouch Action Buttons */}
                       <div className="flex gap-0.5">
                         <button
                           type="button"
@@ -181,7 +172,6 @@ export function KanbanColumn({
                     </div>
                   </div>
 
-                  {/* Pouch OSs list (Accordion content) */}
                   {isExpanded && (
                     <div className="flex flex-col gap-2 mt-1.5 pt-2 border-t border-brand-200/50 animate-fade-in">
                       {sortedPouchOrders.map((order) => (
@@ -201,7 +191,6 @@ export function KanbanColumn({
               );
             })}
 
-            {/* Unassigned OSs (fallback if admin/gerente moved card directly) */}
             {groupedOrders.unassigned.map((order) => (
               <KanbanCard
                 key={order.id}

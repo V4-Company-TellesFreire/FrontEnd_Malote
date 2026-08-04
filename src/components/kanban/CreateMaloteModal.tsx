@@ -25,7 +25,6 @@ export function CreateMaloteModal({
   const [pouchCode, setPouchCode] = React.useState('');
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
 
-  // Generate a default pouch code on open
   React.useEffect(() => {
     if (isOpen) {
       const now = new Date();
@@ -33,7 +32,6 @@ export function CreateMaloteModal({
       const randomPart = Math.floor(100 + Math.random() * 900);
       setPouchCode(`ML-${datePart}-${randomPart}`);
       
-      // Reset selected IDs with initial trigger OS
       if (initialSelectedOsId) {
         setSelectedIds([initialSelectedOsId]);
       } else {
@@ -42,13 +40,11 @@ export function CreateMaloteModal({
     }
   }, [isOpen, initialSelectedOsId]);
 
-  // Filter orders in 'Separando' status
   const availableOrders = React.useMemo(() => {
     return orders.filter((o) => o.status === 'Separando');
   }, [orders]);
 
   const handleToggleSelect = (id: string) => {
-    // Cannot deselect the initial trigger OS to ensure it goes into a pouch
     if (id === initialSelectedOsId) return;
 
     setSelectedIds((prev) =>
@@ -87,7 +83,6 @@ export function CreateMaloteModal({
       size="lg"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {/* Pouch Code Input */}
         <div className="flex flex-col gap-1 bg-neutral-50 p-4 rounded-xl border border-neutral-200">
           <label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">
             Código / Lacre do Malote <span className="text-critical">*</span>
@@ -105,7 +100,6 @@ export function CreateMaloteModal({
           </p>
         </div>
 
-        {/* Selected Counter & Helpers */}
         <div className="flex items-center justify-between border-b border-neutral-100 pb-2">
           <span className="text-xs font-bold text-neutral-800">
             Ordens Selecionadas: <span className="text-brand font-black">{selectedIds.length}</span>
@@ -131,7 +125,6 @@ export function CreateMaloteModal({
           </div>
         </div>
 
-        {/* Orders List */}
         <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
           {availableOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 border border-dashed border-neutral-200 rounded-xl bg-neutral-50 text-center gap-1.5">
@@ -156,7 +149,6 @@ export function CreateMaloteModal({
                       : 'border-neutral-250 hover:bg-neutral-50/50'
                   } ${isTrigger ? 'relative ring-1 ring-brand-300' : ''}`}
                 >
-                  {/* Custom Checkbox */}
                   <div
                     className={`mt-0.5 h-4 w-4 shrink-0 rounded-full border flex items-center justify-center transition-all ${
                       isSelected
@@ -167,7 +159,6 @@ export function CreateMaloteModal({
                     {isSelected && <Check className="h-2.5 w-2.5 stroke-[3]" />}
                   </div>
 
-                  {/* OS Details */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-mono font-bold text-neutral-850">
@@ -195,7 +186,6 @@ export function CreateMaloteModal({
                     </div>
                   </div>
 
-                  {/* Trigger tag badge */}
                   {isTrigger && (
                     <div className="absolute right-3 bottom-2 flex items-center gap-1 text-[8px] bg-brand-50 border border-brand-200 text-brand font-bold py-0.5 px-1.5 rounded">
                       <ShieldAlert className="h-2.5 w-2.5 shrink-0" />
@@ -208,14 +198,13 @@ export function CreateMaloteModal({
           )}
         </div>
 
-        {/* Footer Actions */}
         <div className="flex items-center justify-end gap-3 border-t border-neutral-100 pt-4 mt-2">
           <Button
             type="button"
             variant="secondary"
             onClick={onClose}
             disabled={isSubmitting}
-            className="font-bold h-10 border-neutral-300"
+            className="font-bold h-10 border-neutral-350"
           >
             Cancelar
           </Button>

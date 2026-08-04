@@ -13,7 +13,6 @@ export function DeliveryPanelPage() {
   const [selectedOrder, setSelectedOrder] = React.useState<ServiceOrder | null>(null);
   const [selectedSeller, setSelectedSeller] = React.useState('');
   
-  // State to track expanded pouches
   const [expandedPouches, setExpandedPouches] = React.useState<Record<string, boolean>>({});
   const [selectedPouchCode, setSelectedPouchCode] = React.useState<string | null>(null);
   const [selectedPouchOrders, setSelectedPouchOrders] = React.useState<ServiceOrder[]>([]);
@@ -25,17 +24,14 @@ export function DeliveryPanelPage() {
     }));
   };
 
-  // Load OSs
   const { data: orders, isLoading: isOrdersLoading, refetch } = useServiceOrders();
 
-  // Load Sellers of the store of the selected order
   const { data: users, isLoading: isUsersLoading } = useUsers(
     selectedOrder ? { storeId: selectedOrder.storeId, role: 'vendedor' } : undefined
   );
 
   const transitionMutation = useTransitionStatus();
 
-  // Filter lists
   const pendingOrders = React.useMemo(() => {
     if (!orders) return [];
     return orders.filter((o) => o.status === 'Pronto para Expedição');
@@ -46,7 +42,6 @@ export function DeliveryPanelPage() {
     return orders.filter((o) => o.status === 'Em Rota');
   }, [orders]);
 
-  // Group pending orders by pouchCode
   const groupedPending = React.useMemo(() => {
     const groups: Record<string, ServiceOrder[]> = {};
     const unassigned: ServiceOrder[] = [];
@@ -63,7 +58,6 @@ export function DeliveryPanelPage() {
     return { groups, unassigned };
   }, [pendingOrders]);
 
-  // Group routing orders by pouchCode
   const groupedRouting = React.useMemo(() => {
     const groups: Record<string, ServiceOrder[]> = {};
     const unassigned: ServiceOrder[] = [];
@@ -183,7 +177,6 @@ export function DeliveryPanelPage() {
 
   const sellerOptions = React.useMemo(() => {
     if (!users) return [];
-    // Only return active vendors linkados to the order's store
     return users
       .filter((u) => u.role === 'vendedor' && u.isActive)
       .map((u) => ({
@@ -194,7 +187,6 @@ export function DeliveryPanelPage() {
 
   return (
     <div className="flex flex-col gap-6 max-w-lg mx-auto px-4 py-2">
-      {/* Header Panel */}
       <div className="flex justify-between items-center pb-4 border-b border-neutral-200">
         <div>
           <h2 className="text-lg font-black text-brand-900 leading-tight flex items-center gap-2">
@@ -209,14 +201,13 @@ export function DeliveryPanelPage() {
           variant="secondary"
           size="icon"
           onClick={() => refetch()}
-          className="rounded-full h-8 w-8 hover:bg-neutral-100 shrink-0 border-neutral-300"
+          className="rounded-full h-8 w-8 hover:bg-neutral-100 shrink-0 border-neutral-350"
           title="Sincronizar dados"
         >
           <RefreshCw className="h-4 w-4 text-neutral-600" />
         </Button>
       </div>
 
-      {/* Tabs */}
       <div className="flex bg-neutral-100 p-1 rounded-xl border border-neutral-200">
         <button
           onClick={() => setActiveTab('pending')}
@@ -240,7 +231,6 @@ export function DeliveryPanelPage() {
         </button>
       </div>
 
-      {/* List content */}
       <div className="flex flex-col gap-3.5">
         {isOrdersLoading ? (
           [...Array(3)].map((_, i) => (
@@ -254,7 +244,6 @@ export function DeliveryPanelPage() {
           ))
         ) : activeTab === 'pending' ? (
           <>
-            {/* Grouped Pouches in pending */}
             {Object.entries(groupedPending.groups).map(([pouchCode, pouchOrders]) => {
               const isExpanded = !!expandedPouches[pouchCode];
               const isAnyMutating = transitionMutation.isPending;
@@ -265,7 +254,6 @@ export function DeliveryPanelPage() {
                   className="border-brand-200 border-l-[4px] border-l-brand shadow-xs hover:shadow-sm bg-white rounded-xl transition-all"
                 >
                   <CardContent className="p-4 flex flex-col gap-2.5">
-                    {/* Header */}
                     <div 
                       onClick={() => togglePouchExpand(pouchCode)}
                       className="flex items-center justify-between cursor-pointer select-none py-0.5"
@@ -286,7 +274,6 @@ export function DeliveryPanelPage() {
                       </span>
                     </div>
 
-                    {/* Accordion Content */}
                     {isExpanded && (
                       <div className="flex flex-col gap-3 mt-1 pt-3 border-t border-neutral-100 animate-fade-in">
                         {pouchOrders.map((order) => (
@@ -315,7 +302,6 @@ export function DeliveryPanelPage() {
                       </div>
                     )}
 
-                    {/* Pouch Route Action Button */}
                     <Button
                       onClick={() => handleStartPouchRoute(pouchCode, pouchOrders)}
                       isLoading={isAnyMutating}
@@ -329,7 +315,6 @@ export function DeliveryPanelPage() {
               );
             })}
 
-            {/* Unassigned pending OSs */}
             {groupedPending.unassigned.map((order) => (
               <Card
                 key={order.id}
@@ -378,7 +363,6 @@ export function DeliveryPanelPage() {
           </>
         ) : (
           <>
-            {/* Grouped Pouches in routing */}
             {Object.entries(groupedRouting.groups).map(([pouchCode, pouchOrders]) => {
               const isExpanded = !!expandedPouches[pouchCode];
 
@@ -388,7 +372,6 @@ export function DeliveryPanelPage() {
                   className="border-brand-200 border-l-[4px] border-l-brand shadow-xs hover:shadow-sm bg-white rounded-xl transition-all"
                 >
                   <CardContent className="p-4 flex flex-col gap-2.5">
-                    {/* Header */}
                     <div 
                       onClick={() => togglePouchExpand(pouchCode)}
                       className="flex items-center justify-between cursor-pointer select-none py-0.5"
@@ -409,7 +392,6 @@ export function DeliveryPanelPage() {
                       </span>
                     </div>
 
-                    {/* Accordion Content (OSs list) */}
                     {isExpanded && (
                       <div className="flex flex-col gap-3 mt-1 pt-3 border-t border-neutral-100 animate-fade-in">
                         {pouchOrders.map((order) => (
@@ -438,7 +420,6 @@ export function DeliveryPanelPage() {
                       </div>
                     )}
 
-                    {/* Pouch Delivery Action Button */}
                     <Button
                       onClick={() => handleOpenConfirmPouchDelivery(pouchCode, pouchOrders)}
                       isLoading={transitionMutation.isPending}
@@ -452,7 +433,6 @@ export function DeliveryPanelPage() {
               );
             })}
 
-            {/* Unassigned routing OSs */}
             {groupedRouting.unassigned.map((order) => (
               <Card
                 key={order.id}
@@ -501,7 +481,6 @@ export function DeliveryPanelPage() {
         )}
       </div>
 
-      {/* Confirmation Modal */}
       <Modal
         isOpen={confirmModalOpen}
         onClose={() => setConfirmModalOpen(false)}

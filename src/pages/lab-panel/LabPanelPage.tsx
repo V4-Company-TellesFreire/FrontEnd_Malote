@@ -52,7 +52,6 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
     storeId: '',
   });
 
-  // Auth state
   const user = useAuthStore((s) => s.user);
 
   // Modal control
@@ -129,7 +128,6 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
     if (nextIndex < 0 || nextIndex >= SERVICE_ORDER_STATUSES.length) return;
     const targetStatus = SERVICE_ORDER_STATUSES[nextIndex];
 
-    // Intercept transition from Separando to Pronto para Expedição for laboratorio role
     if (order.status === 'Separando' && targetStatus === 'Pronto para Expedição' && user?.role === 'laboratorio') {
       setMaloteTriggerOsId(id);
       setMaloteModalOpen(true);
@@ -186,7 +184,6 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
 
     if (order.status === targetStatus) return;
 
-    // Validate sequential progression in Lab pipeline
     const currentIndex = SERVICE_ORDER_STATUSES.indexOf(order.status);
     const targetIndex = SERVICE_ORDER_STATUSES.indexOf(targetStatus);
 
@@ -195,7 +192,6 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
       return;
     }
 
-    // Intercept transition from Separando to Pronto para Expedição for laboratorio role
     if (order.status === 'Separando' && targetStatus === 'Pronto para Expedição' && user?.role === 'laboratorio') {
       setMaloteTriggerOsId(id);
       setMaloteModalOpen(true);
@@ -227,7 +223,6 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
     const firstOrder = pouchOrders[0];
     if (firstOrder.status === targetStatus) return;
 
-    // Validate sequential progression in Lab pipeline
     const currentIndex = SERVICE_ORDER_STATUSES.indexOf(firstOrder.status);
     const targetIndex = SERVICE_ORDER_STATUSES.indexOf(targetStatus);
 
