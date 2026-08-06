@@ -214,9 +214,9 @@ export function MainLayout() {
 
           <div className="flex items-center gap-4">
             {/* Trocar Loja / Visão Geral buttons */}
-            {user?.role?.toLowerCase() === 'gerente' && (
+            {(user?.role?.toLowerCase() === 'gerente' || user?.role?.toLowerCase() === 'admin') && (
               <div className="flex items-center gap-2">
-                {/* Gerente viewing a specific store: show button to return to consolidated view */}
+                {/* Viewing a specific store: show button to return to consolidated view */}
                 {selectedStoreName && (
                   <Button
                     variant="secondary"
