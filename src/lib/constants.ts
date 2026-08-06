@@ -91,6 +91,8 @@ export const STATUS_META: Record<ServiceOrderStatus, StatusMeta> = {
  */
 export function getValidTransitions(currentStatus: ServiceOrderStatus): ServiceOrderStatus[] {
   const meta = STATUS_META[currentStatus];
+  // Defensive: unknown status (e.g. from API returning unaccented variant) → no transitions
+  if (!meta) return [];
   if (meta.isFinal) return [];
 
   switch (currentStatus) {
@@ -113,6 +115,7 @@ export function canTransitionTo(from: ServiceOrderStatus, to: ServiceOrderStatus
 
 export function getPreviousStatus(currentStatus: ServiceOrderStatus): ServiceOrderStatus | null {
   const meta = STATUS_META[currentStatus];
+  if (!meta) return null;
   if (meta.index === 0) return null;
   if (currentStatus === 'Entregue c/ Ressalva') return 'Em Rota';
   if (currentStatus === 'Entregue ao Cliente') return null; // Cannot go back from final
