@@ -11,11 +11,16 @@ export class ServiceOrdersHttpApi implements IServiceOrdersApi {
 
   private async request<T>(path: string, options?: RequestInit): Promise<T> {
     const token = useAuthStore.getState().token;
+    const isFormData = options?.body instanceof FormData;
+    
     const headers: HeadersInit = {
-      'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options?.headers,
     };
+
+    if (!isFormData && !('Content-Type' in headers)) {
+      (headers as any)['Content-Type'] = 'application/json';
+    }
 
     const res = await fetch(`${this.baseUrl}${path}`, {
       ...options,
