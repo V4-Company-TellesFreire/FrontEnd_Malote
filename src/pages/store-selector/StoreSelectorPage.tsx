@@ -49,9 +49,9 @@ export function StoreSelectorPage() {
     navigate('/');
   };
 
-  // If user is not a manager (gerente), bypass store selection
+  // If user is not a manager (gerente) or admin, bypass store selection
   React.useEffect(() => {
-    if (user && user.role !== 'gerente') {
+    if (user && user.role.toLowerCase() !== 'gerente' && user.role.toLowerCase() !== 'admin') {
       navigate('/');
     }
   }, [user, navigate]);
