@@ -92,7 +92,7 @@ function getStoredUsers(): Record<string, AuthUser & { passwordPin: string }> {
     }
     
     return parsed;
-  } catch (_e) {
+  } catch {
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_USERS));
     return DEFAULT_USERS;
   }
@@ -120,7 +120,7 @@ export class AuthMockApi implements IAuthApi {
       throw { code: 'INACTIVE_USER', message: 'Usuário inativo no sistema.' };
     }
 
-    const { passwordPin, ...userWithoutPassword } = user;
+    const { passwordPin: _passwordPin, ...userWithoutPassword } = user;
 
     return {
       user: userWithoutPassword,
@@ -143,7 +143,7 @@ export class AuthMockApi implements IAuthApi {
       throw { code: 'USER_NOT_FOUND', message: 'Usuário não encontrado.' };
     }
 
-    const { passwordPin, ...userWithoutPassword } = user;
+    const { passwordPin: _passwordPin, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 
@@ -170,7 +170,7 @@ export class AuthMockApi implements IAuthApi {
       throw { code: 'USER_NOT_FOUND', message: 'Usuário não encontrado.' };
     }
 
-    const { passwordPin, ...userWithoutPassword } = user;
+    const { passwordPin: _passwordPin, ...userWithoutPassword } = user;
 
     return {
       user: userWithoutPassword,
@@ -222,7 +222,7 @@ export class AuthMockApi implements IAuthApi {
     users[emailKey] = newUser;
     saveUsers(users);
 
-    const { passwordPin, ...userWithoutPassword } = newUser;
+    const { passwordPin: _passwordPin, ...userWithoutPassword } = newUser;
     return userWithoutPassword;
   }
 
@@ -258,7 +258,7 @@ export class AuthMockApi implements IAuthApi {
     users[newEmailKey] = updatedUser;
     saveUsers(users);
 
-    const { passwordPin, ...userWithoutPassword } = updatedUser;
+    const { passwordPin: _passwordPin, ...userWithoutPassword } = updatedUser;
     return userWithoutPassword;
   }
 }

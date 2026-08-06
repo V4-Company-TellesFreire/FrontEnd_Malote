@@ -6,7 +6,7 @@ import { LoginPage } from '../pages/login/LoginPage';
 import { StoreSelectorPage } from '../pages/store-selector/StoreSelectorPage';
 import { StorePanelPage } from '../pages/store-panel/StorePanelPage';
 import { LabPanelPage } from '../pages/lab-panel/LabPanelPage';
-import { StoreDashboardPage } from '../pages/dashboard/StoreDashboardPage';
+
 import { NewOSForm } from '../pages/store-panel/NewOSForm';
 import { ProfilePage } from '../pages/profile/ProfilePage';
 import { SellerManagementPage } from '../pages/store-panel/SellerManagementPage';
@@ -133,7 +133,7 @@ export function AppRoutes() {
           <Route
             path="lab"
             element={
-              <ProtectedRoute allowedRoles={['laboratorio', 'admin']}>
+              <ProtectedRoute allowedRoles={['laboratorio']}>
                 <LabPanelPage />
               </ProtectedRoute>
             }
@@ -141,7 +141,7 @@ export function AppRoutes() {
           <Route
             path="lab/deliveries"
             element={
-              <ProtectedRoute allowedRoles={['laboratorio', 'admin']}>
+              <ProtectedRoute allowedRoles={['laboratorio']}>
                 <LabPanelPage initialTab="deliveries" />
               </ProtectedRoute>
             }
@@ -149,7 +149,7 @@ export function AppRoutes() {
           <Route
             path="notifications"
             element={
-              <ProtectedRoute allowedRoles={['laboratorio', 'admin']}>
+              <ProtectedRoute allowedRoles={['laboratorio']}>
                 <LabPanelPage initialTab="notifications" />
               </ProtectedRoute>
             }
@@ -157,7 +157,7 @@ export function AppRoutes() {
           <Route
             path="caveats"
             element={
-              <ProtectedRoute allowedRoles={['laboratorio', 'admin']}>
+              <ProtectedRoute allowedRoles={['laboratorio']}>
                 <LabPanelPage initialTab="caveats" />
               </ProtectedRoute>
             }
@@ -168,17 +168,8 @@ export function AppRoutes() {
             path="dashboard/store"
             element={<Navigate to="/store/dashboard" replace />}
           />
-          <Route
-            path="dashboard/network"
-            element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <StoreDashboardPage isNetwork />
-              </ProtectedRoute>
-            }
-          />
 
-          {/* General placeholder routes for configs */}
-          <Route path="admin" element={<StorePanelPage initialTab="config" />} />
+
         </Route>
 
         {/* Fallback to index */}

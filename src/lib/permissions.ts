@@ -130,19 +130,12 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { id: 'new-os',       label: 'Nova OS',             path: '/store/new',          icon: 'plus-circle',    roles: ['vendedor', 'gerente', 'admin'] },
   { id: 'store-overview', label: 'Overview',          path: '/store/dashboard',    icon: 'bar-chart-3',    roles: ['vendedor', 'gerente', 'admin'] },
-  { id: 'store-track',  label: 'Acompanhamento',      path: '/store/track',        icon: 'eye',            roles: ['vendedor', 'gerente', 'admin'] },
-  { id: 'deliveries',   label: 'Entregues',           path: '/store/deliveries',   icon: 'package-check',  roles: ['vendedor', 'gerente', 'admin'] },
-  { id: 'dashboard-n',  label: 'Dashboard Rede',      path: '/dashboard/network',  icon: 'bar-chart-3',    roles: ['admin'] },
-  { id: 'rectify',      label: 'Retificações',        path: '/rectifications',     icon: 'rotate-ccw',     roles: ['vendedor', 'gerente', 'admin'] },
   
   // Laboratório specific items
-  { id: 'lab-monitor',  label: 'Monitor de Produção',  path: '/lab',                icon: 'flask-conical',  roles: ['laboratorio', 'admin'] },
-  { id: 'lab-deliveries',label: 'Fluxo de Entregas',   path: '/lab/deliveries',     icon: 'truck',          roles: ['laboratorio', 'admin'] },
-  { id: 'notifications',label: 'Alertas WhatsApp',    path: '/notifications',      icon: 'bell',           roles: ['laboratorio', 'admin'] },
-  { id: 'caveats',      label: 'Ressalvas Relatadas', path: '/caveats',            icon: 'alert-triangle', roles: ['laboratorio', 'admin'] },
-  
-  { id: 'admin',        label: 'Configurações',       path: '/admin',              icon: 'settings',       roles: ['admin'] },
-  
+  { id: 'lab-monitor',  label: 'Monitor de Produção',  path: '/lab',                icon: 'flask-conical',  roles: ['laboratorio'] },
+  { id: 'lab-deliveries',label: 'Fluxo de Entregas',   path: '/lab/deliveries',     icon: 'truck',          roles: ['laboratorio'] },
+  { id: 'notifications',label: 'Alertas WhatsApp',    path: '/notifications',      icon: 'bell',           roles: ['laboratorio'] },
+  { id: 'caveats',      label: 'Ressalvas Relatadas', path: '/caveats',            icon: 'alert-triangle', roles: ['laboratorio'] },
   // Motoboy specific items
   { id: 'delivery-panel', label: 'Painel do Motoboy',  path: '/delivery-panel',     icon: 'truck',          roles: ['motoboy', 'admin'] },
 ];

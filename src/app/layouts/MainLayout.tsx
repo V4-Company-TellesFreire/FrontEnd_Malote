@@ -67,8 +67,8 @@ export function MainLayout() {
     setSidebarOpen(false);
   }, [location.pathname, setSidebarOpen]);
 
-  // Gerente without a selected store = consolidated view
-  const isConsolidatedView = user?.role === 'gerente' && !selectedStoreName;
+  // Gerente or Admin without a selected store = consolidated view
+  const isConsolidatedView = (user?.role === 'gerente' || user?.role === 'admin') && !selectedStoreName;
   const activeStoreLabel = user?.role === 'laboratorio'
     ? 'Laboratório Katz'
     : isConsolidatedView
@@ -217,7 +217,7 @@ export function MainLayout() {
             {user?.role === 'gerente' && (
               <div className="flex items-center gap-2">
                 {/* Gerente viewing a specific store: show button to return to consolidated view */}
-                {user?.role === 'gerente' && selectedStoreName && (
+                {selectedStoreName && (
                   <Button
                     variant="secondary"
                     size="sm"
