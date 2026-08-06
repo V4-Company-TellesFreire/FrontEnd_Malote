@@ -72,19 +72,32 @@ function getStoredUsers(): Record<string, AuthUser & { passwordPin: string }> {
   try {
     const parsed = JSON.parse(data);
     
-    // Migration: Check if any default users (like motoboy) are missing in localStorage
+    // Check if any default user is missing OR has a wrong password — force re-init
+    let needsReset = false;
+    for (const [email, defaultUser] of Object.entries(DEFAULT_USERS)) {
+      if (!parsed[email] || parsed[email].passwordPin !== defaultUser.passwordPin) {
+        needsReset = true;
+        break;
+      }
+    }
+    
+    if (needsReset) {
+      // Merge: keep any extra users created by admins, but reset all default user passwords
+      const merged = { ...parsed };
+      for (const [email, defaultUser] of Object.entries(DEFAULT_USERS)) {
+        merged[email] = defaultUser;
+      }
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(merged));
+      return merged;
+    }
+    
+    // Add any new default users that don't exist yet
     let hasMissing = false;
     for (const [email, user] of Object.entries(DEFAULT_USERS)) {
       if (!parsed[email]) {
         parsed[email] = user;
         hasMissing = true;
       }
-    }
-    
-    // If we detect the old simple pin for vendedor, force re-initialization with strong default passwords
-    if (parsed['vendedor@carol.com'] && parsed['vendedor@carol.com'].passwordPin === '1037') {
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_USERS));
-      return DEFAULT_USERS;
     }
     
     if (hasMissing) {

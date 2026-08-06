@@ -67,12 +67,8 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
   const [maloteTriggerOsId, setMaloteTriggerOsId] = React.useState<string | null>(null);
   const [isMaloteSubmitting, setIsMaloteSubmitting] = React.useState(false);
 
-  // Pre-filter seller initial check if vendedor
-  React.useEffect(() => {
-    if (user?.role === 'vendedor') {
-      setSellerFilter(user.name);
-    }
-  }, [user]);
+  // No auto-filter by seller name — vendedor already sees only their store's OS via API
+  // Filtering by seller name here would hide newly created OS when sellerName !== user.name
 
   // Load orders
   const { data: orders, isLoading, isError, error, refetch } = useServiceOrders({
