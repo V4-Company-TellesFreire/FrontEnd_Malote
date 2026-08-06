@@ -21,7 +21,7 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && !allowedRoles.includes(user.role.toLowerCase())) {
     // Redirect unauthorized roles back to respective landing page
     const defaultLanding =
       user.role === 'laboratorio'
