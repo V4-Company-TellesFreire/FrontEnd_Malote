@@ -68,7 +68,7 @@ export function MainLayout() {
   }, [location.pathname, setSidebarOpen]);
 
   // Gerente or Admin without a selected store = consolidated view
-  const isConsolidatedView = (user?.role === 'gerente' || user?.role === 'admin') && !selectedStoreName;
+  const isConsolidatedView = (user?.role?.toLowerCase() === 'gerente' || user?.role?.toLowerCase() === 'admin') && !selectedStoreName;
   const activeStoreLabel = user?.role === 'laboratorio'
     ? 'Laboratório Katz'
     : isConsolidatedView
@@ -214,7 +214,7 @@ export function MainLayout() {
 
           <div className="flex items-center gap-4">
             {/* Trocar Loja / Visão Geral buttons */}
-            {user?.role === 'gerente' && (
+            {user?.role?.toLowerCase() === 'gerente' && (
               <div className="flex items-center gap-2">
                 {/* Gerente viewing a specific store: show button to return to consolidated view */}
                 {selectedStoreName && (
