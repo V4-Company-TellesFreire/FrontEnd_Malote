@@ -4,18 +4,23 @@ import type {
   CreateOSPayload,
   TransitionPayload,
   WhatsAppNotification,
-} from '../../lib/types';
+} from '../../lib/types';import { useAuthStore } from '../../store/authStore';
 
 export class ServiceOrdersHttpApi implements IServiceOrdersApi {
   private baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 
   private async request<T>(path: string, options?: RequestInit): Promise<T> {
-    const token = localStorage.getItem('jwt_token'); // Or state store
+    const token = useAuthStore.getState().token;
+    const isFormData = options?.body instanceof FormData;
+    
     const headers: HeadersInit = {
-      'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options?.headers,
     };
+
+    if (!isFormData && !('Content-Type' in headers)) {
+      (headers as any)['Content-Type'] = 'application/json';
+    }
 
     const res = await fetch(`${this.baseUrl}${path}`, {
       ...options,
