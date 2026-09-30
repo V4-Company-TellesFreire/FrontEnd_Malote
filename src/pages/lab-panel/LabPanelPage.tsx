@@ -6,7 +6,7 @@ import { KanbanBoard } from '../../components/kanban/KanbanBoard';
 import { KanbanFilters } from '../../components/kanban/KanbanFilters';
 import { CreateMaloteModal } from '../../components/kanban/CreateMaloteModal';
 import type { KanbanFiltersData } from '../../components/kanban/KanbanFilters';
-import { FlaskConical, Bell, AlertTriangle, Truck, ListFilter, Kanban, CheckSquare, ChevronRight } from 'lucide-react';
+import { FlaskConical, Bell, AlertTriangle, Truck, ListFilter, Kanban, CheckSquare, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import { SERVICE_ORDER_STATUSES, type ServiceOrderStatus } from '../../lib/constants';
 import { elapsed, formatDateTime } from '../../lib/utils';
 import { ReceiptConfirmationModal } from '../../components/forms/ReceiptConfirmationModal';
@@ -37,6 +37,7 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
 
   const [activeTab, setActiveTab] = React.useState<string>(initialTab);
   const [viewMode, setViewMode] = React.useState<'kanban' | 'table'>('kanban');
+  const [allCardsExpanded, setAllCardsExpanded] = React.useState<boolean | null>(false);
 
   React.useEffect(() => {
     setActiveTab(initialTab);
@@ -128,6 +129,12 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
     if (nextIndex < 0 || nextIndex >= SERVICE_ORDER_STATUSES.length) return;
     const targetStatus = SERVICE_ORDER_STATUSES[nextIndex];
 
+    // Check phone requirement when advancing from 'Chegada de Malote'
+    if (order.status === 'Chegada de Malote' && targetStatus !== 'Chegada de Malote' && (!order.clientPhone || !order.clientPhone.trim())) {
+      toast.error('Não é permitido avançar a OS sem informar o número de telefone do cliente.');
+      return;
+    }
+
     if (order.status === 'Separando' && targetStatus === 'Pronto para Expedição' && user?.role === 'laboratorio') {
       setMaloteTriggerOsId(id);
       setMaloteModalOpen(true);
@@ -183,6 +190,12 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
     if (!order) return;
 
     if (order.status === targetStatus) return;
+
+    // Check phone requirement when advancing from 'Chegada de Malote'
+    if (order.status === 'Chegada de Malote' && targetStatus !== 'Chegada de Malote' && (!order.clientPhone || !order.clientPhone.trim())) {
+      toast.error('Não é permitido avançar a OS sem informar o número de telefone do cliente.');
+      return;
+    }
 
     const currentIndex = SERVICE_ORDER_STATUSES.indexOf(order.status);
     const targetIndex = SERVICE_ORDER_STATUSES.indexOf(targetStatus);
@@ -450,7 +463,18 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
               />
             </div>
             
-            <div className="flex justify-end gap-2">
+            <div className="flex items-center justify-end gap-2">
+              {viewMode === 'kanban' && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setAllCardsExpanded((prev) => (prev ? false : true))}
+                  className="text-xs font-bold border-neutral-300 text-neutral-700 hover:text-neutral-900"
+                  leftIcon={allCardsExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                >
+                  {allCardsExpanded ? 'Recolher Todos' : 'Expandir Todos'}
+                </Button>
+              )}
               <Button
                 variant={viewMode === 'kanban' ? 'primary' : 'secondary'}
                 size="sm"
@@ -488,6 +512,9 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
                   setMaloteTriggerOsId(null);
                   setMaloteModalOpen(true);
                 }}
+                collapsibleCards={true}
+                defaultCollapsedCards={true}
+                isForceExpanded={allCardsExpanded}
               />
             ) : (
               /* Table list layouts */
@@ -515,8 +542,8 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
                       ) : (
                         tabOrders.map((o) => (
                           <tr key={o.id} className="hover:bg-neutral-50/50">
-                            <td className="p-3 font-mono font-bold text-neutral-700">{o.osNumber}</td>
-                            <td className="p-3 font-bold text-neutral-850">{o.clientName}</td>
+                            <td className="p-3 font-mono font-bold text-sm text-neutral-900">{o.osNumber}</td>
+                            <td className="p-3 font-medium text-neutral-700">{o.clientName}</td>
                             <td className="p-3">
                               <div className="flex flex-col">
                                 <span className="font-bold">{o.storeName}</span>
@@ -629,11 +656,14 @@ export function LabPanelPage({ initialTab = 'lab' }: LabPanelPageProps) {
               {filteredOrders.filter(o => o.status === 'Entregue c/ Ressalva').map((o) => (
                 <div key={o.id} className="p-4 rounded-xl border border-critical-200 bg-white flex flex-col gap-3 shadow-xs">
                   <div className="flex justify-between items-center">
-                    <span className="font-mono text-xs text-neutral-500">OS {o.osNumber}</span>
+                    <h4 className="font-mono font-bold text-sm text-neutral-900">OS {o.osNumber}</h4>
                     <Badge variant="critical">Com Ressalva</Badge>
                   </div>
                   <div>
-                    <h4 className="font-bold text-neutral-850 text-sm">{o.clientName}</h4>
+                    <p className="text-xs font-medium text-neutral-700">
+                      <span className="text-neutral-400 font-normal">Cliente: </span>
+                      {o.clientName}
+                    </p>
                     <p className="text-xs text-neutral-400 mt-0.5">{o.storeName} ({o.malote})</p>
                   </div>
                   {o.reception && (

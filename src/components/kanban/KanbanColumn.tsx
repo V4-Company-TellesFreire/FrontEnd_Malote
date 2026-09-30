@@ -18,6 +18,9 @@ export interface KanbanColumnProps {
   onMovePouch?: (pouchCode: string, direction: -1 | 1) => void;
   onCreateMalote?: () => void;
   className?: string;
+  collapsibleCards?: boolean;
+  defaultCollapsedCards?: boolean;
+  isForceExpanded?: boolean | null;
 }
 
 export function KanbanColumn({
@@ -32,6 +35,9 @@ export function KanbanColumn({
   onMovePouch,
   onCreateMalote,
   className,
+  collapsibleCards,
+  defaultCollapsedCards,
+  isForceExpanded,
 }: KanbanColumnProps) {
   const meta = STATUS_META[status];
   
@@ -172,7 +178,7 @@ export function KanbanColumn({
                     </div>
                   </div>
 
-                  {isExpanded && (
+                   {isExpanded && (
                     <div className="flex flex-col gap-2 mt-1.5 pt-2 border-t border-brand-200/50 animate-fade-in">
                       {sortedPouchOrders.map((order) => (
                         <KanbanCard
@@ -183,6 +189,9 @@ export function KanbanColumn({
                           onOpenPickup={onOpenPickup}
                           onOpenCaveat={onOpenCaveat}
                           inPouch={true}
+                          collapsible={collapsibleCards}
+                          defaultCollapsed={defaultCollapsedCards}
+                          isForceExpanded={isForceExpanded}
                         />
                       ))}
                     </div>
@@ -199,6 +208,9 @@ export function KanbanColumn({
                 onOpenReceipt={onOpenReceipt}
                 onOpenPickup={onOpenPickup}
                 onOpenCaveat={onOpenCaveat}
+                collapsible={collapsibleCards}
+                defaultCollapsed={defaultCollapsedCards}
+                isForceExpanded={isForceExpanded}
               />
             ))}
 
@@ -222,6 +234,9 @@ export function KanbanColumn({
                 onOpenReceipt={onOpenReceipt}
                 onOpenPickup={onOpenPickup}
                 onOpenCaveat={onOpenCaveat}
+                collapsible={collapsibleCards}
+                defaultCollapsed={defaultCollapsedCards}
+                isForceExpanded={isForceExpanded}
               />
             ))
           )

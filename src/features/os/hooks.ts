@@ -61,6 +61,22 @@ export function useUpdateServiceOrder() {
   });
 }
 
+export function useUpdateClientPhone() {
+  const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+
+  return useMutation({
+    mutationFn: ({ id, phone }: { id: string; phone: string }) =>
+      osApi.updateClientPhone(id, phone, user?.id || 'anonymous', user?.name || 'Anonymous'),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['serviceOrder', data.id] });
+      queryClient.invalidateQueries({ queryKey: ['storeMetrics'] });
+      queryClient.invalidateQueries({ queryKey: ['networkMetrics'] });
+    },
+  });
+}
+
 export function useTransitionStatus() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);

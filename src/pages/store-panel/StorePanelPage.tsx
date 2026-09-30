@@ -8,7 +8,7 @@ import { KanbanFilters, type KanbanFiltersData } from '../../components/kanban/K
 import { CreateMaloteModal } from '../../components/kanban/CreateMaloteModal';
 import { ReceiptConfirmationModal } from '../../components/forms/ReceiptConfirmationModal';
 import { ClientPickupModal } from '../../components/forms/ClientPickupModal';
-import { Eye, PackageCheck, RotateCcw, PlusCircle, Layers, AlertTriangle, FlaskConical, BarChart2, Loader2, Shield, FileSpreadsheet, Bell, CheckSquare } from 'lucide-react';
+import { Eye, PackageCheck, RotateCcw, PlusCircle, Layers, AlertTriangle, FlaskConical, BarChart2, Loader2, Shield, FileSpreadsheet, Bell, CheckSquare, Maximize2, Minimize2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { useStoreMetrics, useNetworkMetrics } from '../../features/dashboard/hooks';
@@ -54,6 +54,7 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
     storeId: '',
   });
   const [viewMode, setViewMode] = React.useState<'kanban' | 'table'>('kanban');
+  const [allCardsExpanded, setAllCardsExpanded] = React.useState<boolean | null>(false);
 
   React.useEffect(() => {
     setActiveTab(initialTab);
@@ -253,6 +254,12 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
       if (nextStatuses.length > 0) {
         const targetStatus = nextStatuses[0];
 
+        // Check phone requirement when advancing from 'Chegada de Malote'
+        if (order.status === 'Chegada de Malote' && targetStatus !== 'Chegada de Malote' && (!order.clientPhone || !order.clientPhone.trim())) {
+          toast.error('Não é permitido avançar a OS sem informar o número de telefone do cliente.');
+          return;
+        }
+
         // Intercept transition to 'Pronto para Expedição' for vendedor role
         if (order.status === 'Separando' && targetStatus === 'Pronto para Expedição' && user?.role === 'vendedor') {
           setMaloteTriggerOsId(id);
@@ -262,7 +269,11 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
 
         const isCreator = order.createdBy === user?.id;
         if (!canPerformTransition(user?.role || 'vendedor', order.status, targetStatus, isCreator)) {
-          toast.error('Você não tem permissão para mover esta ordem de serviço.');
+          if (targetStatus === 'Montagem' && (user?.role === 'vendedor' || user?.role === 'gerente')) {
+            toast.error('Apenas o Laboratório pode enviar a ordem de serviço para Montagem.');
+          } else {
+            toast.error('Você não tem permissão para mover esta ordem de serviço.');
+          }
           return;
         }
 
@@ -338,6 +349,12 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
     const order = orders?.find((o) => o.id === id);
     if (!order) return;
 
+    // Check phone requirement when advancing from 'Chegada de Malote'
+    if (order.status === 'Chegada de Malote' && targetStatus !== 'Chegada de Malote' && (!order.clientPhone || !order.clientPhone.trim())) {
+      toast.error('Não é permitido avançar a OS sem informar o número de telefone do cliente.');
+      return;
+    }
+
     // Validate transition feasibility
     if (!canTransitionTo(order.status, targetStatus)) {
       toast.error('Transição de status inválida.');
@@ -346,7 +363,11 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
 
     const isCreator = order.createdBy === user?.id;
     if (!canPerformTransition(user?.role || 'vendedor', order.status, targetStatus, isCreator)) {
-      toast.error('Você não tem permissão para mover esta ordem de serviço.');
+      if (targetStatus === 'Montagem' && (user?.role === 'vendedor' || user?.role === 'gerente')) {
+        toast.error('Apenas o Laboratório pode enviar a ordem de serviço para Montagem.');
+      } else {
+        toast.error('Você não tem permissão para mover esta ordem de serviço.');
+      }
       return;
     }
 
@@ -823,7 +844,18 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
                   </div>
 
                   {/* View Mode Toggle */}
-                  <div className="flex justify-end gap-2">
+                  <div className="flex items-center justify-end gap-2">
+                    {viewMode === 'kanban' && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setAllCardsExpanded((prev) => (prev ? false : true))}
+                        className="text-xs font-bold border-neutral-300 text-neutral-700 hover:text-neutral-900"
+                        leftIcon={allCardsExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                      >
+                        {allCardsExpanded ? 'Recolher Todos' : 'Expandir Todos'}
+                      </Button>
+                    )}
                     <Button
                       variant={viewMode === 'kanban' ? 'primary' : 'secondary'}
                       size="sm"
@@ -859,6 +891,9 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
                         setMaloteTriggerOsId(null);
                         setMaloteModalOpen(true);
                       }}
+                      collapsibleCards={true}
+                      defaultCollapsedCards={true}
+                      isForceExpanded={allCardsExpanded}
                     />
                   ) : (
                     <Card className="border-neutral-200 overflow-hidden shadow-xs">
@@ -885,8 +920,8 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
                             ) : (
                               activeOrders.map((o) => (
                                 <tr key={o.id} className="hover:bg-neutral-50/50">
-                                  <td className="p-3 font-mono font-bold text-neutral-700">{o.osNumber}</td>
-                                  <td className="p-3 font-bold text-neutral-850">{o.clientName}</td>
+                                  <td className="p-3 font-mono font-bold text-sm text-neutral-900">{o.osNumber}</td>
+                                  <td className="p-3 font-medium text-neutral-700">{o.clientName}</td>
                                   <td className="p-3">
                                     <div className="flex flex-col">
                                       <span className="font-bold">{o.storeName}</span>
@@ -1051,13 +1086,16 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
                     {rectificationOrders.map((o) => (
                       <div key={o.id} className="p-4 rounded-xl border border-neutral-200 bg-white flex flex-col gap-3 shadow-xs">
                         <div className="flex justify-between items-center">
-                          <span className="font-mono text-xs text-neutral-500">Mãe: {o.osNumber}</span>
+                          <h4 className="font-mono font-bold text-sm text-neutral-900">OS {o.osNumber}</h4>
                           <span className="px-2 py-0.5 rounded-full bg-warning-50 border border-warning-200 text-warning text-[10px] font-bold">
                             RETIFICAÇÃO
                           </span>
                         </div>
                         <div>
-                          <h4 className="font-bold text-neutral-850 text-sm">{o.clientName}</h4>
+                          <p className="text-xs font-medium text-neutral-700">
+                            <span className="text-neutral-400 font-normal">Cliente: </span>
+                            {o.clientName}
+                          </p>
                           <p className="text-xs text-neutral-500 mt-0.5">Filial: {o.storeName}</p>
                         </div>
                         {o.rectification && (
@@ -1140,11 +1178,14 @@ export function StorePanelPage({ initialTab = 'dashboard' }: StorePanelPageProps
                 {filteredOrders.filter(o => o.status === 'Entregue c/ Ressalva').map((o) => (
                   <div key={o.id} className="p-4 rounded-xl border border-critical-200 bg-white flex flex-col gap-3 shadow-xs animate-fade-in">
                     <div className="flex justify-between items-center">
-                      <span className="font-mono text-xs text-neutral-500">OS {o.osNumber}</span>
+                      <h4 className="font-mono font-bold text-sm text-neutral-900">OS {o.osNumber}</h4>
                       <Badge variant="critical">Com Ressalva</Badge>
                     </div>
                     <div>
-                      <h4 className="font-bold text-neutral-850 text-sm">{o.clientName}</h4>
+                      <p className="text-xs font-medium text-neutral-700">
+                        <span className="text-neutral-400 font-normal">Cliente: </span>
+                        {o.clientName}
+                      </p>
                       <p className="text-xs text-neutral-400 mt-0.5">{o.storeName} ({o.malote})</p>
                     </div>
                     {o.reception && (

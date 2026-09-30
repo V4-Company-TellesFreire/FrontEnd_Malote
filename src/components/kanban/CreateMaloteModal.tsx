@@ -169,9 +169,10 @@ export function CreateMaloteModal({
                       </span>
                     </div>
 
-                    <h4 className="font-semibold text-neutral-700 line-clamp-1 mt-0.5">
+                    <p className="text-xs text-neutral-600 font-medium line-clamp-1 mt-0.5">
+                      <span className="text-neutral-400 font-normal">Cliente: </span>
                       {order.clientName}
-                    </h4>
+                    </p>
 
                     <div className="flex items-center gap-2 mt-1.5 text-[10px] text-neutral-400 font-medium">
                       <span className="flex items-center gap-0.5">

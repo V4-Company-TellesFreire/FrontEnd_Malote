@@ -14,6 +14,9 @@ export interface KanbanBoardProps {
   onMovePouch?: (pouchCode: string, direction: -1 | 1) => void;
   onCreateMalote?: () => void;
   statuses?: readonly ServiceOrderStatus[];
+  collapsibleCards?: boolean;
+  defaultCollapsedCards?: boolean;
+  isForceExpanded?: boolean | null;
 }
 
 export function KanbanBoard({
@@ -27,6 +30,9 @@ export function KanbanBoard({
   onMovePouch,
   onCreateMalote,
   statuses,
+  collapsibleCards,
+  defaultCollapsedCards,
+  isForceExpanded,
 }: KanbanBoardProps) {
   const activeStatuses = statuses || SERVICE_ORDER_STATUSES;
   const dragRef = useDragToScroll();
@@ -53,6 +59,9 @@ export function KanbanBoard({
               onDropPouch={onDropPouch}
               onMovePouch={onMovePouch}
               onCreateMalote={onCreateMalote}
+              collapsibleCards={collapsibleCards}
+              defaultCollapsedCards={defaultCollapsedCards}
+              isForceExpanded={isForceExpanded}
             />
           );
         })}

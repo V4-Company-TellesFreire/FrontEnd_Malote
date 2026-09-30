@@ -9,7 +9,7 @@ import type {
 import { getMaloteForStore } from '../../lib/constants';
 import { uid, generateOSNumber } from '../../lib/utils';
 
-const STORAGE_KEY = 'oc_v9_service_orders';
+const STORAGE_KEY = 'oc_v10_service_orders';
 const NOTIF_STORAGE_KEY = 'oc_v9_notifications';
 
 // Generates a mock list of service orders
@@ -23,7 +23,7 @@ function getInitialSeedData(): ServiceOrder[] {
       osStore: '100150',
       sequence: '001',
       clientName: 'João da Silva',
-      clientPhone: '(21) 98765-4321',
+      clientPhone: '',
       storeName: 'Norte 1',
       storeId: 'norte-1',
       malote: 'Manhã',
@@ -843,7 +843,13 @@ function getStoredOrders(): ServiceOrder[] {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
     return seed;
   }
-  return JSON.parse(raw);
+  const orders: ServiceOrder[] = JSON.parse(raw);
+  const os1 = orders.find((o) => o.id === 'os_1');
+  if (os1 && os1.status === 'Chegada de Malote' && os1.clientPhone) {
+    os1.clientPhone = '';
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+  }
+  return orders;
 }
 
 function saveStoredOrders(orders: ServiceOrder[]) {
@@ -1072,6 +1078,35 @@ export class ServiceOrdersMockApi implements IServiceOrdersApi {
     return updated;
   }
 
+  async updateClientPhone(
+    id: string,
+    phone: string,
+    userId: string,
+    userName: string
+  ): Promise<ServiceOrder> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const orders = getStoredOrders();
+    const index = orders.findIndex(o => o.id === id);
+    if (index === -1) {
+      throw { code: 'ORDER_NOT_FOUND', message: 'Ordem de serviço não encontrada.' };
+    }
+
+    orders[index].clientPhone = phone;
+    orders[index].auditLog.push({
+      id: uid(),
+      timestamp: new Date().toISOString(),
+      userId,
+      userName,
+      action: 'Adição de Telefone',
+      fromStatus: null,
+      toStatus: null,
+      details: `Telefone do cliente atualizado para ${phone}.`,
+    });
+
+    saveStoredOrders(orders);
+    return orders[index];
+  }
+
   async transitionStatus(
     id: string,
     payload: TransitionPayload,
@@ -1090,6 +1125,10 @@ export class ServiceOrdersMockApi implements IServiceOrdersApi {
     const fromStatus = order.status;
     const toStatus = payload.to;
 
+    if (order.status === 'Chegada de Malote' && toStatus !== 'Chegada de Malote' && (!order.clientPhone || !order.clientPhone.trim())) {
+      throw { code: 'PHONE_REQUIRED', message: 'Não é permitido avançar a OS sem informar o número de telefone do cliente.' };
+    }
+
     const userRole = (() => {
       const rawUsers = localStorage.getItem('oticas_carol_users');
       if (rawUsers) {
@@ -1101,6 +1140,10 @@ export class ServiceOrdersMockApi implements IServiceOrdersApi {
       }
       return 'vendedor';
     })();
+
+    if (toStatus === 'Montagem' && (userRole === 'vendedor' || userRole === 'gerente')) {
+      throw { code: 'PERMISSION_DENIED', message: 'Apenas o usuário Laboratório pode enviar a ordem de serviço para Montagem.' };
+    }
 
     if (toStatus === 'Pronto para Expedição' && !payload.pouchCode && (userRole === 'laboratorio' || userRole === 'vendedor')) {
       throw { code: 'POUCH_REQUIRED', message: 'Não é permitido mover uma OS para Pronto para Expedição sem vinculá-la a um malote.' };

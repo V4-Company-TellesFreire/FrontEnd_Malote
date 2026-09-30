@@ -148,6 +148,18 @@ export class ServiceOrdersHttpApi implements IServiceOrdersApi {
     });
   }
 
+  updateClientPhone(
+    id: string,
+    phone: string,
+    userId: string,
+    userName: string
+  ): Promise<ServiceOrder> {
+    return this.request<ServiceOrder>(`/service-orders/${id}/phone`, {
+      method: 'PATCH',
+      body: JSON.stringify({ clientPhone: phone, userId, userName }),
+    });
+  }
+
   transitionStatus(
     id: string,
     payload: TransitionPayload,

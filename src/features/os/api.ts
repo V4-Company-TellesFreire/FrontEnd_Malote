@@ -22,6 +22,13 @@ export interface IServiceOrdersApi {
     userId: string,
     userName: string
   ): Promise<ServiceOrder>;
+
+  updateClientPhone(
+    id: string,
+    phone: string,
+    userId: string,
+    userName: string
+  ): Promise<ServiceOrder>;
   
   transitionStatus(
     id: string,
